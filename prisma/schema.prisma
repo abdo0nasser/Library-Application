@@ -17,24 +17,43 @@ model user {
   description String?
   createdAt   DateTime @default(now())
 
-  books  book[]
-  logins login[]
+  logins         login[]
+  borrow_records borrow_record[]
 }
 
 model book {
-  id        Int      @id @default(autoincrement())
-  title     String
-  author    String
-  price     Float    @default(0)
-  createdAt DateTime @default(now())
-  user      user?    @relation(fields: [userId], references: [id])
-  userId    Int?
+  id               Int    @id @default(autoincrement())
+  title            String
+  author           String
+  total_copies     Int
+  available_copies Int
+
+  borrow_records borrow_record[]
+}
+
+model borrow_record {
+  borrow_date DateTime      @default(now())
+  return_date DateTime
+  status      borrow_status
+
+  user    user @relation(fields: [user_id], references: [id])
+  user_id Int
+  book    book @relation(fields: [book_id], references: [id])
+  book_id Int
+
+  @@id([user_id, book_id])
 }
 
 model login {
   id        Int      @id @default(autoincrement())
   token     String
-  user      user?    @relation(fields: [userId], references: [id])
-  userId    Int?
   createdAt DateTime @default(now())
+
+  user    user? @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id Int?
+}
+
+enum borrow_status {
+  BORROWED
+  RETURNED
 }
