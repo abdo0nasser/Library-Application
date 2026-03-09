@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { USER_ROLES } from 'generated/prisma/enums';
-import { PayloadType } from 'src/utils/types';
+import { JwtPayloadType } from 'src/utils/types';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -22,7 +22,7 @@ export class RolesGuard implements CanActivate {
     const request: Request = context.switchToHttp().getRequest();
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     if (token && type.toLowerCase() === 'bearer') {
-      const payload: PayloadType = await this.jwtService.verifyAsync(token);
+      const payload: JwtPayloadType = await this.jwtService.verifyAsync(token);
       if (!payload) return false;
       if (roles.includes(payload.role)) {
         request['user'] = payload;

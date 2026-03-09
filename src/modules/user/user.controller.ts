@@ -14,6 +14,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles } from 'src/decorators/user-role.decorator';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { USER_ROLES } from 'generated/prisma/enums';
+import type { JwtPayloadType } from 'src/utils/types';
+import { CurrentUser } from 'src/decorators/get-current-user.decorator';
 
 @Controller('user')
 export class UserController {
@@ -40,8 +42,20 @@ export class UserController {
   }
 
   @Delete(':id')
-  async deleteUser(@Param('id', ParseIntPipe) id: number): Promise<boolean> {
-    const deleted = await this.userService.deleteUser(id);
+  @Roles(USER_ROLES.ADMIN)
+  async deleteUserById(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<boolean> {
+    const deleted = await this.userService.deleteUserById(id);
     return deleted ? true : false;
+  }
+
+  @Delete()
+  @Roles(USER_ROLES.ADMIN)
+  async deleteCurrentUser(
+    @CurrentUser() payload: JwtPayloadType,
+  ): Promise<boolean> {
+    const deleted = await this.userService.deleteCurrentUser(payload);
+    return deleted;
   }
 }

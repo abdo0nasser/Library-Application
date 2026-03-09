@@ -4,7 +4,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { hash, verify } from 'src/utils/argon';
 import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
-import { PayloadType } from 'src/utils/types';
+import { JwtPayloadType } from 'src/utils/types';
 
 @Injectable()
 export class AuthService {
@@ -49,7 +49,7 @@ export class AuthService {
     return { accessToken };
   }
 
-  private async generateAccessToken(payload: PayloadType): Promise<string> {
+  private async generateAccessToken(payload: JwtPayloadType): Promise<string> {
     return await this.jwtService.signAsync(payload);
   }
 }
