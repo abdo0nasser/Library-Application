@@ -9,15 +9,15 @@ datasource db {
 }
 
 model user {
-  id          Int      @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   name        String
-  email       String   @unique
+  email       String     @unique
   password    String
   age         Int
   description String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime   @default(now())
+  user_role   USER_ROLES @default(NORMAL)
 
-  logins         login[]
   borrow_records borrow_record[]
 }
 
@@ -44,16 +44,12 @@ model borrow_record {
   @@id([user_id, book_id])
 }
 
-model login {
-  id        Int      @id @default(autoincrement())
-  token     String
-  createdAt DateTime @default(now())
-
-  user    user? @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  user_id Int?
-}
-
 enum borrow_status {
   BORROWED
   RETURNED
+}
+
+enum USER_ROLES {
+  NORMAL
+  ADMIN
 }

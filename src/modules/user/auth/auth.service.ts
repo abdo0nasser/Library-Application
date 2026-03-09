@@ -8,7 +8,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { hash, verify } from 'src/utils/argon';
 import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
-import { JwtAccessTokenType } from 'src/utils/types';
+import { PayloadType } from 'src/utils/types';
 
 @Injectable()
 export class AuthService {
@@ -27,6 +27,7 @@ export class AuthService {
     const accessToken = await this.generateAccessToken({
       sub: user.id,
       email: user.email,
+      role: user.user_role,
     });
 
     return { accessToken };
@@ -35,7 +36,7 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<{ accessToken: string }> {
     const user = await this.prismaService.user.findFirst({
       where: { email: loginDto.email },
-      select: { id: true, email: true, password: true },
+      select: { id: true, email: true, password: true, user_role: true },
     });
 
     // checking user data
@@ -46,14 +47,13 @@ export class AuthService {
     const accessToken = await this.generateAccessToken({
       sub: user.id,
       email: user.email,
+      role: user.user_role,
     });
 
     return { accessToken };
   }
 
-  private async generateAccessToken(
-    payload: JwtAccessTokenType,
-  ): Promise<string> {
+  private async generateAccessToken(payload: PayloadType): Promise<string> {
     return await this.jwtService.signAsync(payload);
   }
 }

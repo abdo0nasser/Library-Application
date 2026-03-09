@@ -3,7 +3,6 @@ import {
   IsNotEmpty,
   IsStrongPassword,
   Length,
-  Max,
 } from 'class-validator';
 
 export class LoginDto {

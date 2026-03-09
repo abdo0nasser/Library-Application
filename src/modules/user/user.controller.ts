@@ -6,14 +6,24 @@ import {
   Param,
   ParseIntPipe,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import 'dotenv/config';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Roles } from 'src/decorators/user-role.decorator';
+import { RolesGuard } from 'src/guards/roles.guard';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @Get()
+  @Roles('ADMIN')
+  @UseGuards(RolesGuard)
+  async getAllUser() {
+    return await this.userService.getAllUsers();
+  }
 
   @Get(':id')
   async getUser(@Param('id', ParseIntPipe) userId: number) {

@@ -1,0 +1,51 @@
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { AddBookDto } from './dto/add-book.dto';
+
+@Injectable()
+export class BookService {
+  constructor(private readonly prismaService: PrismaService) {}
+
+  async addBook(addBookDto: AddBookDto) {
+    if (addBookDto.total_copies < addBookDto.available_copies)
+      throw new BadRequestException(
+        'available copies must be lower than or equal total copies',
+      );
+    const book = await this.prismaService.book.create({ data: addBookDto });
+    return book;
+  }
+
+  async updateBook(bookId: number, updateBookDto: AddBookDto) {
+    if (updateBookDto.total_copies < updateBookDto.available_copies)
+      throw new BadRequestException(
+        'available copies must be lower than or equal total copies',
+      );
+
+    try {
+      const book = await this.prismaService.book.update({
+        where: { id: bookId },
+        data: updateBookDto,
+      });
+      return book;
+    } catch (error: any) {
+      if (error.code === 'P2025') throw new NotFoundException('book not found');
+      throw error;
+    }
+  }
+
+  async deleteBook(bookId: number) {
+    try {
+      const deletedBook = await this.prismaService.book.delete({
+        where: { id: bookId },
+      });
+      return deletedBook;
+    } catch (error: any) {
+      if (error.code === 'P2025') throw new NotFoundException('book not found');
+      throw error;
+    }
+  }
+}

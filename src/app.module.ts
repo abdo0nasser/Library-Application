@@ -3,6 +3,9 @@ import { UserModule } from './modules/user/user.module';
 import { PrismaService } from './modules/prisma/prisma.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BookModule } from './modules/book/book.module';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthGuard } from './guards/auth.guard';
 
 @Module({
   imports: [
@@ -22,8 +25,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         };
       },
     }),
+    BookModule,
   ],
   controllers: [],
-  providers: [PrismaService],
+  providers: [PrismaService, { provide: APP_GUARD, useClass: AuthGuard }],
 })
 export class AppModule {}
