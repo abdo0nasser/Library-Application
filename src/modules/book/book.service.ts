@@ -10,6 +10,24 @@ import { AddBookDto } from './dto/add-book.dto';
 export class BookService {
   constructor(private readonly prismaService: PrismaService) {}
 
+  async getAllBooks() {
+    try {
+      const books = await this.prismaService.book.findMany();
+      return books;
+    } catch (e) {
+      throw new BadRequestException('No books found');
+    }
+  }
+
+  async getBookById(id: number) {
+    try {
+      const book = await this.prismaService.book.findFirst({ where: { id } });
+      return book;
+    } catch (e) {
+      throw new NotFoundException('Book not found');
+    }
+  }
+
   async addBook(addBookDto: AddBookDto) {
     if (addBookDto.total_copies < addBookDto.available_copies)
       throw new BadRequestException(

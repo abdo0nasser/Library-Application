@@ -13,13 +13,14 @@ import 'dotenv/config';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles } from 'src/decorators/user-role.decorator';
 import { RolesGuard } from 'src/guards/roles.guard';
+import { USER_ROLES } from 'generated/prisma/enums';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
-  @Roles('ADMIN')
+  @Roles(USER_ROLES.ADMIN)
   @UseGuards(RolesGuard)
   async getAllUser() {
     return await this.userService.getAllUsers();
