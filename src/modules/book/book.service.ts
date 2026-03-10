@@ -11,21 +11,15 @@ export class BookService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async getAllBooks() {
-    try {
-      const books = await this.prismaService.book.findMany();
-      return books;
-    } catch (e) {
-      throw new BadRequestException('No books found');
-    }
+    const books = await this.prismaService.book.findMany();
+    if (!books) throw new NotFoundException('No books found');
+    return books;
   }
 
   async getBookById(id: number) {
-    try {
-      const book = await this.prismaService.book.findFirst({ where: { id } });
-      return book;
-    } catch (e) {
-      throw new NotFoundException('Book not found');
-    }
+    const book = await this.prismaService.book.findFirst({ where: { id } });
+    if (!book) throw new NotFoundException('Book not found');
+    return book;
   }
 
   async addBook(addBookDto: AddBookDto) {
@@ -33,6 +27,7 @@ export class BookService {
       throw new BadRequestException(
         'available copies must be lower than or equal total copies',
       );
+
     const book = await this.prismaService.book.create({ data: addBookDto });
     return book;
   }
@@ -50,7 +45,7 @@ export class BookService {
       });
       return book;
     } catch (error: any) {
-      if (error.code === 'P2025') throw new NotFoundException('book not found');
+      if (error.code === 'P2025') throw new NotFoundException('Book not found');
       throw error;
     }
   }
@@ -62,7 +57,7 @@ export class BookService {
       });
       return deletedBook;
     } catch (error: any) {
-      if (error.code === 'P2025') throw new NotFoundException('book not found');
+      if (error.code === 'P2025') throw new NotFoundException('Book not found');
       throw error;
     }
   }

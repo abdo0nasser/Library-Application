@@ -17,16 +17,25 @@ export class AuthService {
     createUserDto: CreateUserDto,
   ): Promise<{ accessToken: string }> {
     createUserDto.password = await hash(createUserDto.password);
-    const user = await this.prismaService.user.create({ data: createUserDto });
-    if (!user) throw new BadRequestException();
+    try {
+      const user = await this.prismaService.user.create({
+        data: createUserDto,
+      });
+      if (!user) throw new BadRequestException();
 
-    const accessToken = await this.generateAccessToken({
-      sub: user.id,
-      email: user.email,
-      role: user.user_role,
-    });
-
-    return { accessToken };
+      const accessToken = await this.generateAccessToken({
+        sub: user.id,
+        email: user.email,
+        role: user.user_role,
+      });
+      return { accessToken };
+    } catch (e: any) {
+      if (e.code === 'P2002')
+        throw new BadRequestException('User with this email already exists');
+      else {
+        throw new BadRequestException(e.message);
+      }
+    }
   }
 
   async login(loginDto: LoginDto): Promise<{ accessToken: string }> {
@@ -36,7 +45,7 @@ export class AuthService {
     });
 
     // checking user data
-    if (!user) throw new BadRequestException('no user with this email`');
+    if (!user) throw new BadRequestException('invalid email or password`');
     if (!(await verify(loginDto.password, user.password)))
       throw new BadRequestException('password is incorrect');
 
