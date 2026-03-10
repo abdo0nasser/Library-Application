@@ -43,6 +43,7 @@ export class UserController {
 
   @Delete(':id')
   @Roles(USER_ROLES.ADMIN)
+  @UseGuards(RolesGuard)
   async deleteUserById(
     @Param('id', ParseIntPipe) id: number,
   ): Promise<boolean> {
@@ -51,7 +52,8 @@ export class UserController {
   }
 
   @Delete()
-  @Roles(USER_ROLES.ADMIN)
+  @Roles(USER_ROLES.ADMIN, USER_ROLES.NORMAL)
+  @UseGuards(RolesGuard)
   async deleteCurrentUser(
     @CurrentUser() payload: JwtPayloadType,
   ): Promise<boolean> {
