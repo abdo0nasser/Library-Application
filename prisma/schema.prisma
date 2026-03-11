@@ -32,21 +32,22 @@ model book {
 }
 
 model borrow_record {
-  borrow_date DateTime      @default(now())
-  return_date DateTime
-  status      borrow_status
+  borrow_record_id Int           @id @default(autoincrement())
+  borrow_date      DateTime      @default(now())
+  borrow_days      Int
+  return_date      DateTime?
+  status           borrow_status
 
   user    user @relation(fields: [user_id], references: [id])
   user_id Int
   book    book @relation(fields: [book_id], references: [id])
   book_id Int
-
-  @@id([user_id, book_id])
 }
 
 enum borrow_status {
   BORROWED
   RETURNED
+  LATE
 }
 
 enum USER_ROLES {

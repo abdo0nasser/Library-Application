@@ -12,7 +12,6 @@ export class BookService {
 
   async getAllBooks() {
     const books = await this.prismaService.book.findMany();
-    if (!books) throw new NotFoundException('No books found');
     return books;
   }
 
@@ -25,7 +24,7 @@ export class BookService {
   async addBook(addBookDto: AddBookDto) {
     if (addBookDto.total_copies < addBookDto.available_copies)
       throw new BadRequestException(
-        'available copies must be lower than or equal total copies',
+        'Available copies must be lower than or equal to total copies',
       );
 
     const book = await this.prismaService.book.create({ data: addBookDto });
@@ -35,7 +34,7 @@ export class BookService {
   async updateBook(bookId: number, updateBookDto: AddBookDto) {
     if (updateBookDto.total_copies < updateBookDto.available_copies)
       throw new BadRequestException(
-        'available copies must be lower than or equal total copies',
+        'Available copies must be lower than or equal to total copies',
       );
 
     try {

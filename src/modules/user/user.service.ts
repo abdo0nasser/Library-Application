@@ -19,7 +19,8 @@ export class UserService {
       where: { id: userId },
       omit: { password: true },
     });
-    if (!user) throw new NotFoundException();
+
+    if (!user) throw new NotFoundException('No user with this id');
     return user;
   }
 
@@ -27,7 +28,7 @@ export class UserService {
     const user = await this.prismaService.user.findFirst({
       where: { id },
     });
-    if (!user) throw new NotFoundException('no user with this Id');
+    if (!user) throw new NotFoundException('No user with this id');
     user.age = updateUserDto.age ?? user.age;
     user.description = updateUserDto.description ?? user.description;
     user.name = updateUserDto.name ?? user.name;
@@ -43,7 +44,7 @@ export class UserService {
 
   async deleteUserById(id: number) {
     const user = await this.prismaService.user.findFirst({ where: { id } });
-    if (!user) throw new NotFoundException('no user with this Id');
+    if (!user) throw new NotFoundException('No user with this id');
     return (
       (await this.prismaService.user.delete({
         where: { id },
@@ -57,7 +58,7 @@ export class UserService {
       where: { id: userPayload.sub },
       omit: { password: true },
     });
-    if (!user) throw new NotFoundException('user not found');
+    if (!user) throw new NotFoundException('User not found');
 
     return (await this.prismaService.user.delete({
       where: { id: userPayload.sub },
