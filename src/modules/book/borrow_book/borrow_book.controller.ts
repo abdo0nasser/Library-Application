@@ -6,18 +6,42 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { BorrowBookService } from './borrow_book.service';
 import { CurrentUser } from 'src/decorators/get-current-user.decorator';
 import type { JwtPayloadType } from 'src/utils/types';
+import { PaginationDto } from 'src/utils/pagination.dto';
 
 @Controller('borrow-book')
 export class BorrowBookController {
   constructor(private readonly borrowBookService: BorrowBookService) {}
 
   @Get(':id')
-  async getBookBorrowingRecord(@Param('id', ParseIntPipe) id: number) {
-    return await this.borrowBookService.getBookBorrowingRecord(id);
+  async getSpecificBookBorrowingRecord(@Param('id', ParseIntPipe) id: number) {
+    return await this.borrowBookService.getSpecificBorrowStatus(id);
+  }
+
+  @Get('user-history/:id')
+  async getUserBorrowingHistory(
+    @Param('id', ParseIntPipe) userId: number,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return await this.borrowBookService.getUserBorrowingRecord(
+      userId,
+      paginationDto,
+    );
+  }
+
+  @Get('book-history/:id')
+  async getBookBorrowingHistory(
+    @Param('id', ParseIntPipe) bookId: number,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return await this.borrowBookService.getBookBorrowingRecord(
+      bookId,
+      paginationDto,
+    );
   }
 
   @Post(':id/borrow')
@@ -38,15 +62,5 @@ export class BorrowBookController {
     @Param('id', ParseIntPipe) book_id: number,
   ) {
     return await this.borrowBookService.returnBook(user.sub, { book_id });
-  }
-
-  @Get('user-history/:id')
-  async getUserBorrowingHistory(@Param('id', ParseIntPipe) userId: number) {
-    return await this.borrowBookService.getUserBorrowingRecord(userId);
-  }
-
-  @Get('book-history/:id')
-  async getBookBorrowingHistory(@Param('id', ParseIntPipe) bookId: number) {
-    return await this.borrowBookService.getBookBorrowingRecord(bookId);
   }
 }

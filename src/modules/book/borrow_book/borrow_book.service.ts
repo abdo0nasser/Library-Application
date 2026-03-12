@@ -8,6 +8,7 @@ import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { BorrowBookDto } from '../dto/borrow-book.dto';
 import { ReturnBookDto } from '../dto/return-book.dto';
 import { borrow_status } from 'generated/prisma/enums';
+import { PaginationDto } from 'src/utils/pagination.dto';
 
 @Injectable()
 export class BorrowBookService {
@@ -22,7 +23,7 @@ export class BorrowBookService {
     return { data: borrowStatus };
   }
 
-  async getBookBorrowingRecord(bookId: number) {
+  async getBookBorrowingRecord(bookId: number, paginationDto: PaginationDto) {
     const book = await this.prismaService.book.findUnique({
       where: { id: bookId },
     });
@@ -30,6 +31,8 @@ export class BorrowBookService {
 
     const bookBorrowed = await this.prismaService.borrow_record.findMany({
       where: { book_id: bookId },
+      take: paginationDto.take,
+      skip: paginationDto.skip,
     });
 
     if (!bookBorrowed || bookBorrowed.length === 0)
@@ -37,7 +40,7 @@ export class BorrowBookService {
     return { data: bookBorrowed };
   }
 
-  async getUserBorrowingRecord(userId: number) {
+  async getUserBorrowingRecord(userId: number, paginationDto: PaginationDto) {
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
     });
@@ -45,6 +48,8 @@ export class BorrowBookService {
 
     const userBorrowed = await this.prismaService.borrow_record.findMany({
       where: { user_id: userId },
+      take: paginationDto.take,
+      skip: paginationDto.skip,
     });
 
     if (!userBorrowed)

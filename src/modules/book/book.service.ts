@@ -5,13 +5,20 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddBookDto } from './dto/add-book.dto';
+import { JwtPayloadType } from 'src/utils/types';
+import { PaginationDto } from 'src/utils/pagination.dto';
 
 @Injectable()
 export class BookService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async getAllBooks() {
-    const books = await this.prismaService.book.findMany();
+  async getAllBooks(paginationDto: PaginationDto) {
+    console.log(paginationDto);
+
+    const books = await this.prismaService.book.findMany({
+      take: paginationDto.take,
+      skip: paginationDto.skip,
+    });
     return books;
   }
 
@@ -21,13 +28,15 @@ export class BookService {
     return book;
   }
 
-  async addBook(addBookDto: AddBookDto) {
+  async addBook(user: JwtPayloadType, addBookDto: AddBookDto) {
     if (addBookDto.total_copies < addBookDto.available_copies)
       throw new BadRequestException(
         'Available copies must be lower than or equal to total copies',
       );
 
-    const book = await this.prismaService.book.create({ data: addBookDto });
+    const book = await this.prismaService.book.create({
+      data: { user_id: user.sub, ...addBookDto },
+    });
     return book;
   }
 

@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { BookService } from './book.service';
@@ -15,6 +16,9 @@ import { AuthGuard } from 'src/guards/auth.guard';
 import { Roles } from 'src/decorators/user-role.decorator';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { USER_ROLES } from 'generated/prisma/enums';
+import { CurrentUser } from 'src/decorators/get-current-user.decorator';
+import type { JwtPayloadType } from 'src/utils/types';
+import { PaginationDto } from 'src/utils/pagination.dto';
 
 @Roles('ADMIN')
 @UseGuards(AuthGuard, RolesGuard)
@@ -23,8 +27,8 @@ export class BookController {
   constructor(private readonly bookService: BookService) {}
 
   @Get()
-  async getBooks() {
-    return await this.bookService.getAllBooks();
+  async getBooks(@Query() paginationDto: PaginationDto) {
+    return await this.bookService.getAllBooks(paginationDto);
   }
 
   @Roles(USER_ROLES.NORMAL, USER_ROLES.ADMIN)
@@ -34,8 +38,11 @@ export class BookController {
   }
 
   @Post()
-  async createBook(@Body() addBookDto: AddBookDto) {
-    return await this.bookService.addBook(addBookDto);
+  async createBook(
+    @CurrentUser() user: JwtPayloadType,
+    @Body() addBookDto: AddBookDto,
+  ) {
+    return await this.bookService.addBook(user, addBookDto);
   }
 
   @Put(':id')

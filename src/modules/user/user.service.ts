@@ -3,13 +3,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { hash } from 'src/utils/argon';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtPayloadType } from 'src/utils/types';
+import { PaginationDto } from 'src/utils/pagination.dto';
 
 @Injectable()
 export class UserService {
   constructor(private readonly prismaService: PrismaService) {}
-  async getAllUsers() {
+  async getAllUsers(paginationDto: PaginationDto) {
     const users = await this.prismaService.user.findMany({
       omit: { password: true },
+      take: paginationDto.take,
+      skip: paginationDto.skip,
     });
     return users;
   }

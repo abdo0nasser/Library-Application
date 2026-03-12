@@ -19,6 +19,7 @@ model user {
   user_role   USER_ROLES @default(NORMAL)
 
   borrow_records borrow_record[]
+  books          book[]
 }
 
 model book {
@@ -27,6 +28,9 @@ model book {
   author           String
   total_copies     Int
   available_copies Int
+
+  user    user @relation(fields: [user_id], references: [id])
+  user_id Int 
 
   borrow_records borrow_record[]
 }

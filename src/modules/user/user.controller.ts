@@ -6,6 +6,7 @@ import {
   Param,
   ParseIntPipe,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
@@ -16,6 +17,7 @@ import { RolesGuard } from 'src/guards/roles.guard';
 import { USER_ROLES } from 'generated/prisma/enums';
 import type { JwtPayloadType } from 'src/utils/types';
 import { CurrentUser } from 'src/decorators/get-current-user.decorator';
+import { PaginationDto } from 'src/utils/pagination.dto';
 
 @Controller('user')
 export class UserController {
@@ -24,8 +26,8 @@ export class UserController {
   @Get()
   @Roles(USER_ROLES.ADMIN)
   @UseGuards(RolesGuard)
-  async getAllUser() {
-    return await this.userService.getAllUsers();
+  async getAllUser(@Query() paginationDto: PaginationDto) {
+    return await this.userService.getAllUsers(paginationDto);
   }
 
   @Get(':id')
