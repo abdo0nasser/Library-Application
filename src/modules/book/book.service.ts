@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AddBookDto } from './dto/add-book.dto';
 import { JwtPayloadType } from 'src/utils/types';
 import { PaginationDto } from 'src/utils/pagination.dto';
+import { verifyOwnershipOrAdmin } from 'src/utils/authorization';
 
 @Injectable()
 export class BookService {
@@ -40,11 +41,26 @@ export class BookService {
     return book;
   }
 
-  async updateBook(bookId: number, updateBookDto: AddBookDto) {
+  async updateBook(
+    user: JwtPayloadType,
+    bookId: number,
+    updateBookDto: AddBookDto,
+  ) {
     if (updateBookDto.total_copies < updateBookDto.available_copies)
       throw new BadRequestException(
         'Available copies must be lower than or equal to total copies',
       );
+
+    const existingBook = await this.prismaService.book.findUnique({
+      where: { id: bookId },
+    });
+    if (!existingBook) throw new NotFoundException('Book not found');
+
+    verifyOwnershipOrAdmin(
+      user,
+      existingBook.user_id,
+      'You can only update your own books',
+    );
 
     try {
       const book = await this.prismaService.book.update({
@@ -58,7 +74,18 @@ export class BookService {
     }
   }
 
-  async deleteBook(bookId: number) {
+  async deleteBook(user: JwtPayloadType, bookId: number) {
+    const existingBook = await this.prismaService.book.findUnique({
+      where: { id: bookId },
+    });
+    if (!existingBook) throw new NotFoundException('Book not found');
+
+    verifyOwnershipOrAdmin(
+      user,
+      existingBook.user_id,
+      'You can only delete your own books',
+    );
+
     try {
       const deletedBook = await this.prismaService.book.delete({
         where: { id: bookId },

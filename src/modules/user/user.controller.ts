@@ -22,6 +22,7 @@ import { CurrentUser } from 'src/decorators/get-current-user.decorator';
 import { PaginationDto } from 'src/utils/pagination.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from 'src/utils/multer-config';
+import { verifyOwnershipOrAdmin } from 'src/utils/authorization';
 
 @Controller('user')
 export class UserController {
@@ -35,33 +36,43 @@ export class UserController {
   }
 
   @Get(':id')
-  async getUser(@Param('id', ParseIntPipe) userId: number) {
+  async getUser(
+    @CurrentUser() user: JwtPayloadType,
+    @Param('id', ParseIntPipe) userId: number,
+  ) {
+    verifyOwnershipOrAdmin(user, userId, 'You can only view your own profile');
     return await this.userService.getUser(userId);
   }
 
   @Put(':id')
   @UseInterceptors(FileInterceptor('profile', multerConfig))
   async updateUser(
+    @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
     @UploadedFile() profilePic?: Express.Multer.File,
   ) {
+    verifyOwnershipOrAdmin(user, id, 'You can only update your own profile');
     const profilePath = profilePic?.path ?? null;
     return await this.userService.updateUser(id, updateUserDto, profilePath);
   }
 
   @Delete(':id')
-  @Roles(USER_ROLES.ADMIN)
   @UseGuards(RolesGuard)
   async deleteUserById(
-    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayloadType,
+    @Param('id', ParseIntPipe) userId: number,
   ): Promise<boolean> {
-    const deleted = await this.userService.deleteUserById(id);
+    verifyOwnershipOrAdmin(
+      user,
+      userId,
+      'You can only delete your own profile',
+    );
+    const deleted = await this.userService.deleteUserById(userId);
     return deleted ? true : false;
   }
 
   @Delete()
-  @Roles(USER_ROLES.ADMIN, USER_ROLES.NORMAL)
   @UseGuards(RolesGuard)
   async deleteCurrentUser(
     @CurrentUser() payload: JwtPayloadType,

@@ -36,15 +36,24 @@ export class UserService {
       where: { id },
     });
     if (!user) throw new NotFoundException('No user with this id');
-    user.age = updateUserDto.age ?? user.age;
-    user.description = updateUserDto.description ?? user.description;
-    user.name = updateUserDto.name ?? user.name;
-    user.user_profile = profilePath ?? user.user_profile;
-    user.password = (await hash(updateUserDto.password)) ?? user.password;
+
+    const updateData: any = {};
+    if (updateUserDto.age !== undefined) updateData.age = updateUserDto.age;
+    if (updateUserDto.description !== undefined)
+      updateData.description = updateUserDto.description;
+    if (updateUserDto.name !== undefined) updateData.name = updateUserDto.name;
+    if (profilePath !== null) updateData.user_profile = profilePath;
+    if (updateUserDto.password)
+      updateData.password = await hash(updateUserDto.password);
+
+    if (Object.keys(updateData).length === 0) {
+      const { password, ...userWithoutPassword } = user;
+      return userWithoutPassword;
+    }
 
     return await this.prismaService.user.update({
       where: { id },
-      data: user,
+      data: updateData,
       omit: { password: true },
     });
   }

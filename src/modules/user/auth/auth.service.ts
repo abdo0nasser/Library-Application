@@ -92,6 +92,11 @@ export class AuthService {
     if (!user || !(await verify(loginDto.password, user.password)))
       throw new UnauthorizedException('invalid email or password');
 
+    if (!user.email_verified_at)
+      throw new UnauthorizedException(
+        'Please verify your email prior to login',
+      );
+
     const accessToken = await this.generateAccessToken({
       sub: user.id,
       email: user.email,

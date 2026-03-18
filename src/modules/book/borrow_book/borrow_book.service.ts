@@ -4,22 +4,29 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
+import { JwtPayloadType } from 'src/utils/types';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { BorrowBookDto } from '../dto/borrow-book.dto';
 import { ReturnBookDto } from '../dto/return-book.dto';
 import { borrow_status } from 'generated/prisma/enums';
 import { PaginationDto } from 'src/utils/pagination.dto';
+import { verifyOwnershipOrAdmin } from 'src/utils/authorization';
 
 @Injectable()
 export class BorrowBookService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async getSpecificBorrowStatus(borrowId: number) {
+  async getSpecificBorrowStatus(userPayload: JwtPayloadType, borrowId: number) {
     const borrowStatus = await this.prismaService.borrow_record.findUnique({
       where: { borrow_record_id: borrowId },
     });
 
     if (!borrowStatus) throw new NotFoundException('Borrow record not found');
+    verifyOwnershipOrAdmin(
+      userPayload,
+      borrowStatus.user_id,
+      'You are not authorized to view this record',
+    );
     return { data: borrowStatus };
   }
 
@@ -40,7 +47,16 @@ export class BorrowBookService {
     return { data: bookBorrowed };
   }
 
-  async getUserBorrowingRecord(userId: number, paginationDto: PaginationDto) {
+  async getUserBorrowingRecord(
+    userPayload: JwtPayloadType,
+    userId: number,
+    paginationDto: PaginationDto,
+  ) {
+    verifyOwnershipOrAdmin(
+      userPayload,
+      userId,
+      'You can only view your own borrowing history',
+    );
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
     });
@@ -57,11 +73,15 @@ export class BorrowBookService {
     return { data: userBorrowed };
   }
 
-  async borrowBook(user_id: number, borrowBookDto: BorrowBookDto) {
+  async borrowBook(
+    user_id: number,
+    book_id: number,
+    borrowBookDto: BorrowBookDto,
+  ) {
     return await this.prismaService.$transaction(async (prisma) => {
       // 1. First find the book and ensure it exists and has available copies
       const book = await prisma.book.findUnique({
-        where: { id: borrowBookDto.book_id },
+        where: { id: book_id },
       });
 
       if (!book) throw new NotFoundException('Book not found');
@@ -71,7 +91,7 @@ export class BorrowBookService {
       // Check if the user already has an active borrow for this book
       const existingBorrow = await prisma.borrow_record.findFirst({
         where: {
-          book_id: borrowBookDto.book_id,
+          book_id: book_id,
           user_id: user_id,
           status: borrow_status.BORROWED,
         },
@@ -83,17 +103,21 @@ export class BorrowBookService {
         );
       }
 
-      // Update the book's copy count atomically
-      await prisma.book.update({
-        where: { id: borrowBookDto.book_id },
+      // Update the book's copy count atomically using an in-database constraint check
+      const result = await prisma.book.updateMany({
+        where: { id: book_id, available_copies: { gt: 0 } },
         data: { available_copies: { decrement: 1 } },
       });
+
+      if (result.count === 0) {
+        throw new BadRequestException('Book has no available copies left');
+      }
 
       // Create the borrow record
       return {
         data: await prisma.borrow_record.create({
           data: {
-            book_id: borrowBookDto.book_id,
+            book_id: book_id,
             user_id: user_id,
             status: borrow_status.BORROWED,
             borrow_days: borrowBookDto.days_to_return,

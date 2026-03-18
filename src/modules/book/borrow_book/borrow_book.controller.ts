@@ -7,32 +7,50 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { BorrowBookService } from './borrow_book.service';
 import { CurrentUser } from 'src/decorators/get-current-user.decorator';
 import type { JwtPayloadType } from 'src/utils/types';
 import { PaginationDto } from 'src/utils/pagination.dto';
+import { USER_ROLES } from 'generated/prisma/enums';
+import { RolesGuard } from 'src/guards/roles.guard';
+import { Roles } from 'src/decorators/user-role.decorator';
+import { BorrowBookDto } from '../dto/borrow-book.dto';
+import { verifyOwnershipOrAdmin } from 'src/utils/authorization';
 
 @Controller('borrow-book')
 export class BorrowBookController {
   constructor(private readonly borrowBookService: BorrowBookService) {}
 
   @Get(':id')
-  async getSpecificBookBorrowingRecord(@Param('id', ParseIntPipe) id: number) {
-    return await this.borrowBookService.getSpecificBorrowStatus(id);
+  async getSpecificBookBorrowingRecord(
+    @CurrentUser() user: JwtPayloadType,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return await this.borrowBookService.getSpecificBorrowStatus(user, id);
   }
 
   @Get('user-history/:id')
   async getUserBorrowingHistory(
+    @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) userId: number,
     @Query() paginationDto: PaginationDto,
   ) {
+    verifyOwnershipOrAdmin(
+      user,
+      userId,
+      'You can only view your own borrowing history',
+    );
     return await this.borrowBookService.getUserBorrowingRecord(
+      user,
       userId,
       paginationDto,
     );
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(USER_ROLES.ADMIN)
   @Get('book-history/:id')
   async getBookBorrowingHistory(
     @Param('id', ParseIntPipe) bookId: number,
@@ -48,12 +66,13 @@ export class BorrowBookController {
   async borrowBook(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) book_id: number,
-    @Body('days_to_return', ParseIntPipe) days_to_return: number,
+    @Body() borrowBookDto: BorrowBookDto,
   ) {
-    return await this.borrowBookService.borrowBook(user.sub, {
+    return await this.borrowBookService.borrowBook(
+      user.sub,
       book_id,
-      days_to_return,
-    });
+      borrowBookDto,
+    );
   }
 
   @Put(':id/return')

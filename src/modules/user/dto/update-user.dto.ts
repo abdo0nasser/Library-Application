@@ -1,30 +1,29 @@
 import {
-  IsNotEmpty,
   IsOptional,
   IsStrongPassword,
-  Length,
   MaxLength,
   MinLength,
+  Min,
+  Max,
 } from 'class-validator';
 
 export class UpdateUserDto {
   @MinLength(2, { message: 'name is too short' })
   @MaxLength(20, { message: 'name is too big' })
-  @IsNotEmpty()
+  @IsOptional()
   name: string;
 
   @IsStrongPassword()
-  @IsNotEmpty()
+  @IsOptional()
   password: string;
 
-  @Length(18, 75, {
-    message: 'age must be greater than 18 and smalled than 75',
-  })
-  @IsNotEmpty()
+  @Min(18, { message: 'age must be 18 or older' })
+  @Max(75, { message: 'age must be 75 or younger' })
+  @IsOptional()
   age: number;
 
-  @IsOptional()
   @MinLength(2, { message: 'find a good description for urslf' })
   @MaxLength(128, { message: 'find a smalled description' })
+  @IsOptional()
   description: string;
 }
