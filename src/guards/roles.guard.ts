@@ -1,34 +1,27 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
-import { Request } from 'express';
 import { USER_ROLES } from 'generated/prisma/enums';
-import { JwtPayloadType } from 'src/utils/types';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(
-    private readonly reflector: Reflector,
-    private readonly jwtService: JwtService,
-  ) {}
+  constructor(private readonly reflector: Reflector) {}
 
-  async canActivate(context: ExecutionContext) {
+  canActivate(context: ExecutionContext): boolean {
     const roles = this.reflector.getAllAndOverride<USER_ROLES[]>('roles', [
       context.getHandler(),
       context.getClass(),
     ]);
-    if (!roles || roles.length == 0) return false;
 
-    const request: Request = context.switchToHttp().getRequest();
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    if (token && type.toLowerCase() === 'bearer') {
-      const payload: JwtPayloadType = await this.jwtService.verifyAsync(token);
-      if (!payload) return false;
-      if (roles.includes(payload.role)) {
-        request['user'] = payload;
-        return true;
-      }
-    }
-    return false;
+    // If no roles are required for this route, allow access
+    if (!roles || roles.length === 0) return true;
+
+    const request = context.switchToHttp().getRequest();
+    const user = request.user; // This is populated by AuthGuard
+
+    // If there is no user attached to the request, deny access
+    if (!user) return false;
+
+    // Check if the user's role is in the list of allowed roles
+    return roles.includes(user.role);
   }
 }

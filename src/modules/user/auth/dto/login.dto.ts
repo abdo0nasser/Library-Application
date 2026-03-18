@@ -2,7 +2,7 @@ import {
   IsEmail,
   IsNotEmpty,
   IsStrongPassword,
-  Length,
+  MaxLength,
 } from 'class-validator';
 
 export class LoginDto {
@@ -10,7 +10,7 @@ export class LoginDto {
   @IsNotEmpty()
   email: string;
 
-  @Length(8, 20)
+  @MaxLength(20)
   @IsStrongPassword()
   @IsNotEmpty()
   password: string;

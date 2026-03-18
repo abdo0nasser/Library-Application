@@ -31,6 +31,18 @@ export class AuthService {
     createUserDto: CreateUserDto,
     profilePath: string | null,
   ): Promise<{ accessToken: string; message: string }> {
+    const existingUser = await this.prismaService.user.findUnique({
+      where: { email: createUserDto.email },
+    });
+    if (existingUser) {
+      if (profilePath) {
+        await unlink(profilePath).catch((err) =>
+          console.error(`Failed to delete orphaned image: ${profilePath}`, err),
+        );
+      }
+      throw new BadRequestException('User with this email already exists');
+    }
+
     try {
       const hashedPassword = await hash(createUserDto.password);
       const user = await this.prismaService.user.create({
@@ -40,7 +52,6 @@ export class AuthService {
           user_profile: profilePath,
         },
       });
-      if (!user) throw new BadRequestException();
 
       const tokenPayload: JwtPayloadType = {
         sub: user.id,
@@ -54,23 +65,14 @@ export class AuthService {
         accessToken,
         message: 'Verify your email from the email sent to you',
       };
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (profilePath) {
-        try {
-          await unlink(profilePath);
-        } catch (unlinkError) {
-          console.error(
-            `Failed to delete orphaned image: ${profilePath}`,
-            unlinkError,
-          );
-        }
+        await unlink(profilePath).catch((err) =>
+          console.error(`Failed to delete orphaned image: ${profilePath}`, err),
+        );
       }
-
-      if (e.code === 'P2002')
-        throw new BadRequestException('User with this email already exists');
-      else {
-        throw new BadRequestException(e.message);
-      }
+      const message = e instanceof Error ? e.message : 'Failed to create user';
+      throw new BadRequestException(message);
     }
   }
 
@@ -99,8 +101,8 @@ export class AuthService {
 
     try {
       await this.mailService.sendLoginMail(user.email);
-    } catch (e: any) {
-      console.error(`Failed to send login mail for ${user.email}:`, e.message);
+    } catch {
+      console.error(`Failed to send login mail for ${user.email}`);
     }
 
     return { accessToken };
@@ -128,7 +130,7 @@ export class AuthService {
         user.email,
         verificationCode,
       );
-    } catch (e: any) {
+    } catch {
       await this.cache.del(String(user.sub));
       throw new BadRequestException('Failed to send verification email');
     }
@@ -152,7 +154,7 @@ export class AuthService {
       verificationCodeInCache !== verificationCode
     )
       throw new BadRequestException(
-        'User has no active verification code or verification code has been manipulated, try sending verification code again',
+        'Invalid or expired verification code. Please request a new one.',
       );
     try {
       await this.prismaService.user.update({
@@ -172,8 +174,8 @@ export class AuthService {
         data: { user: user, accessToken },
         message: 'User has been verified',
       };
-    } catch (e) {
-      throw new BadRequestException(e);
+    } catch {
+      throw new BadRequestException('Failed to update verification status');
     }
   }
 
