@@ -37,7 +37,7 @@ A robust, scalable, and secure RESTful API built with **NestJS**, **Prisma**, an
 - **Database**: [PostgreSQL](https://www.postgresql.org/)
 - **ORM**: [Prisma](https://www.prisma.io/)
 - **Cache**: [Redis](https://redis.io/)
-- **Auth**: [Passport JWT](http://www.passportjs.org/), [Argon2](https://github.com/ranisalt/node-argon2)
+- **Auth**: [JWT](https://github.com/nestjs/jwt), [Argon2](https://github.com/ranisalt/node-argon2)
 - **Mailing**: [Nodemailer](https://nodemailer.com/)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 
@@ -93,7 +93,6 @@ pnpm start:dev
 pnpm build
 pnpm start:prod
 ```
-
 
 ## 📚 Documentation
 
