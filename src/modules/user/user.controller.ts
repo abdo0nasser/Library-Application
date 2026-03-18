@@ -7,7 +7,9 @@ import {
   ParseIntPipe,
   Put,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import 'dotenv/config';
@@ -18,6 +20,8 @@ import { USER_ROLES } from 'generated/prisma/enums';
 import type { JwtPayloadType } from 'src/utils/types';
 import { CurrentUser } from 'src/decorators/get-current-user.decorator';
 import { PaginationDto } from 'src/utils/pagination.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { multerConfig } from 'src/utils/multer-config';
 
 @Controller('user')
 export class UserController {
@@ -36,11 +40,14 @@ export class UserController {
   }
 
   @Put(':id')
+  @UseInterceptors(FileInterceptor('profile', multerConfig))
   async updateUser(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
+    @UploadedFile() profilePic?: Express.Multer.File,
   ) {
-    await this.userService.updateUser(id, updateUserDto);
+    const profilePath = profilePic?.path ?? null;
+    return await this.userService.updateUser(id, updateUserDto, profilePath);
   }
 
   @Delete(':id')

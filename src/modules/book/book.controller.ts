@@ -12,7 +12,6 @@ import {
 } from '@nestjs/common';
 import { BookService } from './book.service';
 import { AddBookDto } from './dto/add-book.dto';
-import { AuthGuard } from 'src/guards/auth.guard';
 import { Roles } from 'src/decorators/user-role.decorator';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { USER_ROLES } from 'generated/prisma/enums';
@@ -21,7 +20,7 @@ import type { JwtPayloadType } from 'src/utils/types';
 import { PaginationDto } from 'src/utils/pagination.dto';
 
 @Roles('ADMIN')
-@UseGuards(AuthGuard, RolesGuard)
+@UseGuards(RolesGuard)
 @Controller('book')
 export class BookController {
   constructor(private readonly bookService: BookService) {}

@@ -1,10 +1,10 @@
+import { Type } from 'class-transformer';
 import {
   IsEmail,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsStrongPassword,
-  Length,
   Max,
   MaxLength,
   Min,
@@ -25,6 +25,7 @@ export class CreateUserDto {
   @IsNotEmpty()
   email: string;
 
+  @Type(() => Number)
   @IsInt()
   @Min(18, {
     message: 'age must be 18+',

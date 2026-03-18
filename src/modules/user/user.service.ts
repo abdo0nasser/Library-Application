@@ -27,7 +27,11 @@ export class UserService {
     return user;
   }
 
-  async updateUser(id: number, updateUserDto: UpdateUserDto) {
+  async updateUser(
+    id: number,
+    updateUserDto: UpdateUserDto,
+    profilePath: string | null,
+  ) {
     const user = await this.prismaService.user.findFirst({
       where: { id },
     });
@@ -35,7 +39,7 @@ export class UserService {
     user.age = updateUserDto.age ?? user.age;
     user.description = updateUserDto.description ?? user.description;
     user.name = updateUserDto.name ?? user.name;
-
+    user.user_profile = profilePath ?? user.user_profile;
     user.password = (await hash(updateUserDto.password)) ?? user.password;
 
     return await this.prismaService.user.update({
