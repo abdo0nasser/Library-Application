@@ -18,12 +18,16 @@ import { RolesGuard } from 'src/guards/roles.guard';
 import { Roles } from 'src/decorators/user-role.decorator';
 import { BorrowBookDto } from '../dto/borrow-book.dto';
 import { verifyOwnershipOrAdmin } from 'src/utils/authorization';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
+@ApiBearerAuth()
 @Controller('borrow-book')
 export class BorrowBookController {
   constructor(private readonly borrowBookService: BorrowBookService) {}
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get specific borrowing record status' })
+  @ApiResponse({ status: 200, description: 'Borrowing status' })
   async getSpecificBookBorrowingRecord(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) id: number,
@@ -32,6 +36,8 @@ export class BorrowBookController {
   }
 
   @Get('user-history/:id')
+  @ApiOperation({ summary: 'Get borrowing history of a user' })
+  @ApiResponse({ status: 200, description: 'User borrowing history' })
   async getUserBorrowingHistory(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) userId: number,
@@ -52,6 +58,8 @@ export class BorrowBookController {
   @UseGuards(RolesGuard)
   @Roles(USER_ROLES.ADMIN)
   @Get('book-history/:id')
+  @ApiOperation({ summary: 'Get borrowing history of a book (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Book borrowing history' })
   async getBookBorrowingHistory(
     @Param('id', ParseIntPipe) bookId: number,
     @Query() paginationDto: PaginationDto,
@@ -63,6 +71,8 @@ export class BorrowBookController {
   }
 
   @Post(':id/borrow')
+  @ApiOperation({ summary: 'Borrow a book' })
+  @ApiResponse({ status: 201, description: 'Book borrowed successfully' })
   async borrowBook(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) book_id: number,
@@ -76,6 +86,8 @@ export class BorrowBookController {
   }
 
   @Put(':id/return')
+  @ApiOperation({ summary: 'Return a borrowed book' })
+  @ApiResponse({ status: 200, description: 'Book returned successfully' })
   async returnBook(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) book_id: number,

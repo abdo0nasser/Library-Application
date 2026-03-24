@@ -23,7 +23,16 @@ import { PaginationDto } from 'src/utils/pagination.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from 'src/utils/multer-config';
 import { verifyOwnershipOrAdmin } from 'src/utils/authorization';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
+@ApiTags('Users')
+@ApiBearerAuth()
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -31,11 +40,15 @@ export class UserController {
   @Get()
   @Roles(USER_ROLES.ADMIN)
   @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Get all users (Admin only)' })
+  @ApiResponse({ status: 200, description: 'List of users' })
   async getAllUser(@Query() paginationDto: PaginationDto) {
     return await this.userService.getAllUsers(paginationDto);
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get user by ID' })
+  @ApiResponse({ status: 200, description: 'User data' })
   async getUser(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) userId: number,
@@ -46,6 +59,9 @@ export class UserController {
 
   @Put(':id')
   @UseInterceptors(FileInterceptor('profile', multerConfig))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Update user profile' })
+  @ApiResponse({ status: 200, description: 'User updated successfully' })
   async updateUser(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) id: number,
@@ -59,6 +75,8 @@ export class UserController {
 
   @Delete(':id')
   @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Delete user by ID' })
+  @ApiResponse({ status: 200, description: 'User deleted' })
   async deleteUserById(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) userId: number,
@@ -74,6 +92,8 @@ export class UserController {
 
   @Delete()
   @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Delete current user' })
+  @ApiResponse({ status: 200, description: 'User deleted' })
   async deleteCurrentUser(
     @CurrentUser() payload: JwtPayloadType,
   ): Promise<boolean> {
