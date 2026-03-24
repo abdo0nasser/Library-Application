@@ -16,6 +16,7 @@ import { MailService } from 'src/modules/mail/mail.service';
 import { randomBytes } from 'crypto';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
+import { AppLoggerService } from 'src/modules/logger/logger.service';
 
 @Injectable()
 export class AuthService {
@@ -25,19 +26,24 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
-  ) {}
+    private readonly logger: AppLoggerService,
+  ) {
+    this.logger.setContext(AuthService.name);
+  }
 
   async createUser(
     createUserDto: CreateUserDto,
     profilePath: string | null,
   ): Promise<{ accessToken: string; message: string }> {
+    this.logger.log(`Creating user with email: ${createUserDto.email}`);
     const existingUser = await this.prismaService.user.findUnique({
       where: { email: createUserDto.email },
     });
     if (existingUser) {
+      this.logger.warn(`Signup attempt with existing email: ${createUserDto.email}`);
       if (profilePath) {
         await unlink(profilePath).catch((err) =>
-          console.error(`Failed to delete orphaned image: ${profilePath}`, err),
+          this.logger.error(`Failed to delete orphaned image: ${profilePath}`, err),
         );
       }
       throw new BadRequestException('User with this email already exists');
@@ -53,6 +59,8 @@ export class AuthService {
         },
       });
 
+      this.logger.log(`User created successfully: id=${user.id}, email=${user.email}`);
+
       const tokenPayload: JwtPayloadType = {
         sub: user.id,
         email: user.email,
@@ -66,9 +74,10 @@ export class AuthService {
         message: 'Verify your email from the email sent to you',
       };
     } catch (e: unknown) {
+      this.logger.error(`Failed to create user: ${createUserDto.email}`, e instanceof Error ? e.stack : String(e));
       if (profilePath) {
         await unlink(profilePath).catch((err) =>
-          console.error(`Failed to delete orphaned image: ${profilePath}`, err),
+          this.logger.error(`Failed to delete orphaned image: ${profilePath}`, err),
         );
       }
       const message = e instanceof Error ? e.message : 'Failed to create user';
@@ -77,6 +86,7 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto): Promise<{ accessToken: string }> {
+    this.logger.log(`Login attempt for email: ${loginDto.email}`);
     const user = await this.prismaService.user.findUnique({
       where: { email: loginDto.email },
       select: {
@@ -88,14 +98,17 @@ export class AuthService {
       },
     });
 
-    // checking user data
-    if (!user || !(await verify(loginDto.password, user.password)))
+    if (!user || !(await verify(loginDto.password, user.password))) {
+      this.logger.warn(`Failed login attempt for email: ${loginDto.email}`);
       throw new UnauthorizedException('invalid email or password');
+    }
 
-    if (!user.email_verified_at)
+    if (!user.email_verified_at) {
+      this.logger.warn(`Unverified login attempt for email: ${loginDto.email}`);
       throw new UnauthorizedException(
         'Please verify your email prior to login',
       );
+    }
 
     const accessToken = await this.generateAccessToken({
       sub: user.id,
@@ -104,10 +117,12 @@ export class AuthService {
       isVerified: user.email_verified_at ? true : false,
     });
 
+    this.logger.log(`Login successful for user: id=${user.id}`);
     return { accessToken };
   }
 
   async sendVerification(user: JwtPayloadType) {
+    this.logger.log(`Sending verification email for user: id=${user.sub}`);
     if (user.isVerified)
       throw new BadRequestException('User is already verified');
 
@@ -130,14 +145,17 @@ export class AuthService {
         verificationCode,
       );
     } catch {
+      this.logger.error(`Failed to send verification email for user: id=${user.sub}`);
       await this.cache.del(String(user.sub));
       throw new BadRequestException('Failed to send verification email');
     }
 
+    this.logger.log(`Verification email sent for user: id=${user.sub}`);
     return { message: 'Verification mail has been sent' };
   }
 
   async verifyEmail(id: number, verificationCode: string) {
+    this.logger.log(`Verifying email for user: id=${id}`);
     const user = await this.prismaService.user.findUnique({
       where: { id },
       omit: { password: true },
@@ -147,7 +165,6 @@ export class AuthService {
       throw new BadRequestException('User already verified');
 
     const verificationCodeInCache = await this.cache.get<string>(String(id));
-    // check if there's an existing verifcation code in cache and whether it's the same as the code sent
     if (
       !verificationCodeInCache ||
       verificationCodeInCache !== verificationCode
@@ -169,16 +186,19 @@ export class AuthService {
         isVerified: true,
       });
 
+      this.logger.log(`Email verified for user: id=${id}`);
       return {
         data: { user: user, accessToken },
         message: 'User has been verified',
       };
     } catch {
+      this.logger.error(`Failed to update verification status for user: id=${id}`);
       throw new BadRequestException('Failed to update verification status');
     }
   }
 
   async forgotPassword(email: string) {
+    this.logger.log(`Password reset requested for email: ${email}`);
     const user = await this.prismaService.user.findUnique({
       where: { email },
       omit: { password: true },
@@ -198,10 +218,12 @@ export class AuthService {
         verificationCode,
       );
     } catch {
+      this.logger.error(`Failed to send reset password email to: ${email}`);
       await this.cache.del(`reset-${user.email}`);
       throw new BadRequestException('Failed to send reset password email');
     }
 
+    this.logger.log(`Password reset email sent to: ${email}`);
     return { message: 'Password reset email has been sent' };
   }
 
@@ -211,6 +233,7 @@ export class AuthService {
     newPassword: string;
   }) {
     const { email, token, newPassword } = resetDto;
+    this.logger.log(`Processing password reset for email: ${email}`);
 
     const user = await this.prismaService.user.findUnique({
       where: { email },
@@ -220,6 +243,7 @@ export class AuthService {
 
     const tokenInCache = await this.cache.get<string>(`reset-${email}`);
     if (!tokenInCache || tokenInCache !== token) {
+      this.logger.warn(`Invalid or expired reset token for email: ${email}`);
       throw new BadRequestException(
         'Invalid or expired reset token. Please request a new one.',
       );
@@ -233,8 +257,10 @@ export class AuthService {
         data: { password: hashedPassword },
       });
       await this.cache.del(`reset-${email}`);
+      this.logger.log(`Password reset successful for email: ${email}`);
       return { message: 'Password has been successfully reset' };
     } catch {
+      this.logger.error(`Failed to reset password for email: ${email}`);
       throw new BadRequestException('Failed to reset password');
     }
   }

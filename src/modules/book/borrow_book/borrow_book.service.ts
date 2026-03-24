@@ -11,12 +11,19 @@ import { ReturnBookDto } from '../dto/return-book.dto';
 import { borrow_status } from 'generated/prisma/enums';
 import { PaginationDto } from 'src/utils/pagination.dto';
 import { verifyOwnershipOrAdmin } from 'src/utils/authorization';
+import { AppLoggerService } from 'src/modules/logger/logger.service';
 
 @Injectable()
 export class BorrowBookService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly logger: AppLoggerService,
+  ) {
+    this.logger.setContext(BorrowBookService.name);
+  }
 
   async getSpecificBorrowStatus(userPayload: JwtPayloadType, borrowId: number) {
+    this.logger.log(`Fetching borrow record: id=${borrowId}`);
     const borrowStatus = await this.prismaService.borrow_record.findUnique({
       where: { borrow_record_id: borrowId },
     });
@@ -31,6 +38,7 @@ export class BorrowBookService {
   }
 
   async getBookBorrowingRecord(bookId: number, paginationDto: PaginationDto) {
+    this.logger.log(`Fetching borrowing records for book: id=${bookId}`);
     const book = await this.prismaService.book.findUnique({
       where: { id: bookId },
     });
@@ -52,6 +60,7 @@ export class BorrowBookService {
     userId: number,
     paginationDto: PaginationDto,
   ) {
+    this.logger.log(`Fetching borrowing records for user: id=${userId}`);
     verifyOwnershipOrAdmin(
       userPayload,
       userId,
@@ -78,8 +87,8 @@ export class BorrowBookService {
     book_id: number,
     borrowBookDto: BorrowBookDto,
   ) {
+    this.logger.log(`User id=${user_id} borrowing book: id=${book_id}`);
     return await this.prismaService.$transaction(async (prisma) => {
-      // 1. First find the book and ensure it exists and has available copies
       const book = await prisma.book.findUnique({
         where: { id: book_id },
       });
@@ -88,7 +97,6 @@ export class BorrowBookService {
       if (book.available_copies === 0)
         throw new BadRequestException('Book has no available copies');
 
-      // Check if the user already has an active borrow for this book
       const existingBorrow = await prisma.borrow_record.findFirst({
         where: {
           book_id: book_id,
@@ -103,7 +111,6 @@ export class BorrowBookService {
         );
       }
 
-      // Update the book's copy count atomically using an in-database constraint check
       const result = await prisma.book.updateMany({
         where: { id: book_id, available_copies: { gt: 0 } },
         data: { available_copies: { decrement: 1 } },
@@ -113,21 +120,25 @@ export class BorrowBookService {
         throw new BadRequestException('Book has no available copies left');
       }
 
-      // Create the borrow record
-      return {
-        data: await prisma.borrow_record.create({
-          data: {
-            book_id: book_id,
-            user_id: user_id,
-            status: borrow_status.BORROWED,
-            borrow_days: borrowBookDto.days_to_return,
-          },
-        }),
-      };
+      const record = await prisma.borrow_record.create({
+        data: {
+          book_id: book_id,
+          user_id: user_id,
+          status: borrow_status.BORROWED,
+          borrow_days: borrowBookDto.days_to_return,
+        },
+      });
+
+      this.logger.log(
+        `Book borrowed: record_id=${record.borrow_record_id}, user_id=${user_id}, book_id=${book_id}, days=${borrowBookDto.days_to_return}`,
+      );
+
+      return { data: record };
     });
   }
 
   async returnBook(user_id: number, returnBookDto: ReturnBookDto) {
+    this.logger.log(`User id=${user_id} returning book: id=${returnBookDto.book_id}`);
     return await this.prismaService.$transaction(async (prisma) => {
       const book = await prisma.book.findUnique({
         where: { id: returnBookDto.book_id },
@@ -146,24 +157,25 @@ export class BorrowBookService {
           'No active borrow record for this book by this user',
         );
 
-      // Calculate due date
       const dueDate = new Date(borrowRecord.borrow_date);
       dueDate.setDate(dueDate.getDate() + borrowRecord.borrow_days);
 
       const now = new Date();
       const isLate = now > dueDate;
 
-      // Update the record
       const updated = await prisma.borrow_record.update({
         where: { borrow_record_id: borrowRecord.borrow_record_id },
         data: { status: borrow_status.RETURNED, return_date: now },
       });
 
-      // Increment available copies back
       await prisma.book.update({
         where: { id: returnBookDto.book_id },
         data: { available_copies: { increment: 1 } },
       });
+
+      this.logger.log(
+        `Book returned: record_id=${borrowRecord.borrow_record_id}, user_id=${user_id}, book_id=${returnBookDto.book_id}${isLate ? ' (LATE)' : ''}`,
+      );
 
       return {
         data: updated,

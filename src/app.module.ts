@@ -1,17 +1,22 @@
 import { Module } from '@nestjs/common';
 import { UserModule } from './modules/user/user.module';
-import { PrismaService } from './modules/prisma/prisma.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BookModule } from './modules/book/book.module';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthGuard } from './guards/auth.guard';
 import { MailModule } from './modules/mail/mail.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import KeyvRedis from '@keyv/redis';
+import { LoggerModule } from './modules/logger/logger.module';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
+import { AllExceptionsFilter } from './filters/all-exceptions.filter';
+import { PrismaModule } from './modules/prisma/prisma.module';
 
 @Module({
   imports: [
+    PrismaModule,
+    LoggerModule,
     UserModule,
     ConfigModule.forRoot({
       isGlobal: true,
@@ -42,6 +47,10 @@ import KeyvRedis from '@keyv/redis';
     MailModule,
   ],
   controllers: [],
-  providers: [PrismaService, { provide: APP_GUARD, useClass: AuthGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+  ],
 })
 export class AppModule {}
