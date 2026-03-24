@@ -14,6 +14,7 @@ import { AddBookDto } from './dto/add-book.dto';
 import { CurrentUser } from 'src/decorators/get-current-user.decorator';
 import type { JwtPayloadType } from 'src/utils/types';
 import { PaginationDto } from 'src/utils/pagination.dto';
+import { UpdateBookDto } from './dto/update-book.dto';
 
 @Controller('book')
 export class BookController {
@@ -41,7 +42,7 @@ export class BookController {
   async updateBook(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) bookId: number,
-    @Body() updateBookDto: AddBookDto,
+    @Body() updateBookDto: UpdateBookDto,
   ) {
     return await this.bookService.updateBook(user, bookId, updateBookDto);
   }

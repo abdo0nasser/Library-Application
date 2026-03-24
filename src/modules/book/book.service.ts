@@ -8,6 +8,7 @@ import { AddBookDto } from './dto/add-book.dto';
 import { JwtPayloadType } from 'src/utils/types';
 import { PaginationDto } from 'src/utils/pagination.dto';
 import { verifyOwnershipOrAdmin } from 'src/utils/authorization';
+import { UpdateBookDto } from './dto/update-book.dto';
 
 @Injectable()
 export class BookService {
@@ -44,7 +45,7 @@ export class BookService {
   async updateBook(
     user: JwtPayloadType,
     bookId: number,
-    updateBookDto: AddBookDto,
+    updateBookDto: UpdateBookDto,
   ) {
     if (updateBookDto.total_copies < updateBookDto.available_copies)
       throw new BadRequestException(

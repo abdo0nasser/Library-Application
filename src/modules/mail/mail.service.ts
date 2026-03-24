@@ -28,6 +28,28 @@ export class MailService {
     }
   }
 
+  async sendResetPasswordMail(email: string, token: string) {
+    try {
+      const resetPasswordLink = `${this.configService.get<string>('DOMAIN')}/reset-password?email=${email}&token=${token}`;
+      return await this.mailerService.sendMail({
+        to: email,
+        from: `<no-reply@my-nestjs-app.com>`,
+        subject: `Reset your password`,
+        html: `
+        <div>
+          <h2> Hi ${email} </h2>
+          <p>You requested a password reset. Use the following code to reset your password:</p>
+          <a href="${resetPasswordLink}">Reset Password</a>
+          <p>If you did not request a password reset, please ignore this email.</p>
+          <p>This link will expire in 15 minutes.</p>
+        </div>
+        `,
+      });
+    } catch (err) {
+      throw new BadRequestException('something went wrong ' + err);
+    }
+  }
+
   async sendVerificationMail(
     id: number,
     email: string,
@@ -44,6 +66,8 @@ export class MailService {
           <h2> Hi ${email} </h2>
           <p>Verify to your account by pressing this link</p>
           <a href="${verificationLink}">Click Here</a> 
+          <p>If you did not request a verification, please ignore this email.</p>
+          <p>This link will expire in 15 minutes.</p>
         </div>
         `,
       });

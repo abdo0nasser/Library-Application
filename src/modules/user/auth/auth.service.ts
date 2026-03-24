@@ -104,12 +104,6 @@ export class AuthService {
       isVerified: user.email_verified_at ? true : false,
     });
 
-    try {
-      await this.mailService.sendLoginMail(user.email);
-    } catch {
-      console.error(`Failed to send login mail for ${user.email}`);
-    }
-
     return { accessToken };
   }
 
@@ -181,6 +175,67 @@ export class AuthService {
       };
     } catch {
       throw new BadRequestException('Failed to update verification status');
+    }
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: { email },
+      omit: { password: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const verificationCode = randomBytes(32).toString('hex');
+    await this.cache.set(
+      `reset-${user.email}`,
+      verificationCode,
+      this.configService.get<number>('REDIS_TTL'),
+    );
+
+    try {
+      await this.mailService.sendResetPasswordMail(
+        user.email,
+        verificationCode,
+      );
+    } catch {
+      await this.cache.del(`reset-${user.email}`);
+      throw new BadRequestException('Failed to send reset password email');
+    }
+
+    return { message: 'Password reset email has been sent' };
+  }
+
+  async resetPassword(resetDto: {
+    email: string;
+    token: string;
+    newPassword: string;
+  }) {
+    const { email, token, newPassword } = resetDto;
+
+    const user = await this.prismaService.user.findUnique({
+      where: { email },
+      omit: { password: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const tokenInCache = await this.cache.get<string>(`reset-${email}`);
+    if (!tokenInCache || tokenInCache !== token) {
+      throw new BadRequestException(
+        'Invalid or expired reset token. Please request a new one.',
+      );
+    }
+
+    const hashedPassword = await hash(newPassword);
+
+    try {
+      await this.prismaService.user.update({
+        where: { email },
+        data: { password: hashedPassword },
+      });
+      await this.cache.del(`reset-${email}`);
+      return { message: 'Password has been successfully reset' };
+    } catch {
+      throw new BadRequestException('Failed to reset password');
     }
   }
 
