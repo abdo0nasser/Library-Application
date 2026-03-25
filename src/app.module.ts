@@ -12,6 +12,8 @@ import { LoggerModule } from './modules/logger/logger.module';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { PrismaModule } from './modules/prisma/prisma.module';
+import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 
 @Module({
   imports: [
@@ -20,6 +22,21 @@ import { PrismaModule } from './modules/prisma/prisma.module';
     UserModule,
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: seconds(config.get<number>('THROTTLE_TTL', 60)),
+            limit: config.get<number>('THROTTLE_LIMIT', 10),
+          },
+        ],
+        storage: new ThrottlerStorageRedisService(
+          config.get<string>('REDIS_URL'),
+        ),
+      }),
     }),
     JwtModule.registerAsync({
       global: true,
@@ -51,6 +68,7 @@ import { PrismaModule } from './modules/prisma/prisma.module';
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}
