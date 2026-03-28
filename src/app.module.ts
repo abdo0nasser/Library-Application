@@ -34,7 +34,7 @@ import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis'
           },
         ],
         storage: new ThrottlerStorageRedisService(
-          config.get<string>('REDIS_URL'),
+          config.get<string>('REDIS_THROTTLER'),
         ),
       }),
     }),

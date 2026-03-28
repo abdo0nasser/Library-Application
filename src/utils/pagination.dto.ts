@@ -8,19 +8,19 @@ export class PaginationDto {
   @Min(1)
   @Max(100)
   @IsInt()
-  items_per_page: number = 10;
+  limit: number = 10;
 
   @ApiPropertyOptional({ example: 1, minimum: 1, default: 1 })
   @Type(() => Number)
   @Min(1)
   @Max(100000)
   @IsInt()
-  page_number: number = 1;
+  page: number = 1;
 
   get skip(): number {
-    return (this.page_number - 1) * this.items_per_page;
+    return (this.page - 1) * this.limit;
   }
   get take(): number {
-    return this.items_per_page;
+    return this.limit;
   }
 }
