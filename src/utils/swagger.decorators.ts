@@ -69,11 +69,3 @@ export const ApiDataResponse = <TModel extends Type<any>>(
     }),
   );
 };
-
-export const ApiStandardErrors = () => {
-  return applyDecorators(
-    ApiBadRequestResponse({ description: 'Bad Request / Validation Error' }),
-    ApiNotFoundResponse({ description: 'Record not found' }),
-    ApiConflictResponse({ description: 'Unique constraint / Conflict Error' }),
-  );
-};
