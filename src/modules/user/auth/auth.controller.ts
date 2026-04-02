@@ -28,6 +28,7 @@ import { CurrentUser } from 'src/decorators/get-current-user.decorator';
 import type { JwtPayloadType, FacebookUser } from 'src/utils/types';
 import {
   ApiConsumes,
+  ApiCookieAuth,
   ApiOperation,
   ApiResponse,
   ApiTags,
@@ -116,6 +117,7 @@ export class AuthController {
 
   @Post('send-verification')
   @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
   @ApiOperation({ summary: 'Send verification email' })
   @ApiResponse({ status: 200, description: 'Verification email sent' })
   async sendVerification(@CurrentUser() user: JwtPayloadType) {
@@ -158,6 +160,7 @@ export class AuthController {
 
   @Delete('logout')
   @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth()
   @ApiOperation({ summary: 'Logout user' })
   @ApiResponse({ status: 200, description: 'Successful logout' })
   async logoutUser(

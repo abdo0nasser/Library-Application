@@ -14,9 +14,7 @@ export interface StandardResponse<T> {
 }
 
 @Injectable()
-export class TransformInterceptor<T>
-  implements NestInterceptor<T, StandardResponse<T>>
-{
+export class TransformInterceptor<T> implements NestInterceptor<T, StandardResponse<T>> {
   intercept(
     context: ExecutionContext,
     next: CallHandler,
@@ -28,12 +26,15 @@ export class TransformInterceptor<T>
 
         // Handle cases where service explicitly returns paginated or structured data
         if (
+          result &&
           typeof result === 'object' &&
-          'data' in result &&
-          Object.keys(result).every(k => ['data', 'metadata', 'message'].includes(k))
+          Object.keys(result).every((k) =>
+            ['data', 'metadata', 'message'].includes(k),
+          ) &&
+          Object.keys(result).length > 0
         ) {
           return {
-            data: result.data,
+            data: result.data ?? null,
             ...(result.metadata && { metadata: result.metadata }),
             ...(result.message && { message: result.message }),
           };

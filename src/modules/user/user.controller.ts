@@ -30,6 +30,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { UserEntity } from './entities/user.entity';
+import {
+  ApiDataResponse,
+  ApiPaginatedResponse,
+} from 'src/utils/swagger.decorators';
 
 @ApiTags('Users')
 @ApiCookieAuth()
@@ -41,21 +46,21 @@ export class UserController {
   @Roles(USER_ROLES.ADMIN)
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Get all users (Admin only)' })
-  @ApiResponse({ status: 200, description: 'List of users' })
+  @ApiPaginatedResponse(UserEntity)
   async getAllUser(@Query() paginationDto: PaginationDto) {
     return await this.userService.getAllUsers(paginationDto);
   }
 
   @Get('me')
   @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({ status: 200, description: 'Current user data' })
+  @ApiDataResponse(UserEntity)
   async getCurrentUser(@CurrentUser() user: JwtPayloadType) {
     return await this.userService.getUser(user.sub);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get user by ID' })
-  @ApiResponse({ status: 200, description: 'User data' })
+  @ApiDataResponse(UserEntity)
   async getUser(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) userId: number,
@@ -68,7 +73,7 @@ export class UserController {
   @UseInterceptors(FileInterceptor('profile', multerConfig))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Update user profile' })
-  @ApiResponse({ status: 200, description: 'User updated successfully' })
+  @ApiDataResponse(UserEntity)
   async updateUser(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) id: number,

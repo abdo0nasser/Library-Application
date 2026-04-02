@@ -19,6 +19,11 @@ import { Roles } from 'src/decorators/user-role.decorator';
 import { BorrowBookDto } from '../dto/borrow-book.dto';
 import { verifyOwnershipOrAdmin } from 'src/utils/authorization';
 import { ApiCookieAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { BorrowRecordEntity } from './entities/borrow-record.entity';
+import {
+  ApiDataResponse,
+  ApiPaginatedResponse,
+} from 'src/utils/swagger.decorators';
 
 @Controller('borrow-book')
 @ApiCookieAuth()
@@ -27,7 +32,7 @@ export class BorrowBookController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get specific borrowing record status' })
-  @ApiResponse({ status: 200, description: 'Borrowing status' })
+  @ApiDataResponse(BorrowRecordEntity)
   async getSpecificBookBorrowingRecord(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) id: number,
@@ -37,7 +42,7 @@ export class BorrowBookController {
 
   @Get('user-history/:id')
   @ApiOperation({ summary: 'Get borrowing history of a user' })
-  @ApiResponse({ status: 200, description: 'User borrowing history' })
+  @ApiPaginatedResponse(BorrowRecordEntity)
   async getUserBorrowingHistory(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) userId: number,
@@ -59,7 +64,7 @@ export class BorrowBookController {
   @Roles(USER_ROLES.ADMIN)
   @Get('book-history/:id')
   @ApiOperation({ summary: 'Get borrowing history of a book (Admin only)' })
-  @ApiResponse({ status: 200, description: 'Book borrowing history' })
+  @ApiPaginatedResponse(BorrowRecordEntity)
   async getBookBorrowingHistory(
     @Param('id', ParseIntPipe) bookId: number,
     @Query() paginationDto: PaginationDto,
@@ -72,7 +77,7 @@ export class BorrowBookController {
 
   @Post(':id/borrow')
   @ApiOperation({ summary: 'Borrow a book' })
-  @ApiResponse({ status: 201, description: 'Book borrowed successfully' })
+  @ApiDataResponse(BorrowRecordEntity)
   async borrowBook(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) book_id: number,
@@ -87,7 +92,7 @@ export class BorrowBookController {
 
   @Put(':id/return')
   @ApiOperation({ summary: 'Return a borrowed book' })
-  @ApiResponse({ status: 200, description: 'Book returned successfully' })
+  @ApiDataResponse(BorrowRecordEntity)
   async returnBook(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) book_id: number,

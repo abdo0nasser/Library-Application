@@ -16,6 +16,8 @@ import type { JwtPayloadType } from 'src/utils/types';
 import { PaginationDto } from 'src/utils/pagination.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import { ApiCookieAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { BookEntity } from './entities/book.entity';
+import {  ApiDataResponse, ApiPaginatedResponse } from 'src/utils/swagger.decorators';
 
 @ApiCookieAuth()
 @Controller('book')
@@ -24,7 +26,7 @@ export class BookController {
 
   @Get()
   @ApiOperation({ summary: 'Get all books' })
-  @ApiResponse({ status: 200, description: 'List of books' })
+  @ApiPaginatedResponse(BookEntity)
   async getBooks(@Query() paginationDto: PaginationDto) {
     const books = await this.bookService.getAllBooks(paginationDto);
     return books;
@@ -32,14 +34,14 @@ export class BookController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get book by ID' })
-  @ApiResponse({ status: 200, description: 'Book details' })
+  @ApiDataResponse(BookEntity)
   async getBookById(@Param('id', ParseIntPipe) id: number) {
     return await this.bookService.getBookById(id);
   }
 
   @Post()
   @ApiOperation({ summary: 'Add a new book' })
-  @ApiResponse({ status: 201, description: 'Book added' })
+  @ApiDataResponse(BookEntity)
   async createBook(
     @CurrentUser() user: JwtPayloadType,
     @Body() addBookDto: AddBookDto,
@@ -49,7 +51,7 @@ export class BookController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update book details' })
-  @ApiResponse({ status: 200, description: 'Book updated' })
+  @ApiDataResponse(BookEntity)
   async updateBook(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) bookId: number,
@@ -60,7 +62,7 @@ export class BookController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a book' })
-  @ApiResponse({ status: 200, description: 'Book deleted' })
+  @ApiDataResponse(BookEntity)
   async deleteBook(
     @CurrentUser() user: JwtPayloadType,
     @Param('id', ParseIntPipe) bookId: number,
