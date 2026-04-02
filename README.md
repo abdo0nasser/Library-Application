@@ -6,9 +6,11 @@ A robust, scalable, and secure RESTful API built with **NestJS**, **Prisma**, an
 
 ## 🚀 Features
 
-- **🔐 Authentication & Authorization**:
-  - Secure Signup and Login using **JWT** and **Argon2** hashing.
-  - Email Verification system with dedicated mailer service.
+- **🔐 Authentication & Security**:
+  - Secure Signup, Login, and Password Reset cycles.
+  - **HttpOnly Cookie Authentication**: JWT access tokens are fundamentally protected from XSS attacks by relying exclusively on secure cookies.
+  - **Social Logins**: Seamless integration with **Facebook OAuth** natively binding to the local database.
+  - Complete robust Email Verification process using Nodemailer.
   - **Role-Based Access Control (RBAC)**: Distinct permissions for `ADMIN` and `NORMAL` users.
   - Ownership verification for sensitive operations (IDOR protection).
 
@@ -23,11 +25,12 @@ A robust, scalable, and secure RESTful API built with **NestJS**, **Prisma**, an
   - Comprehensive borrowing history for both users and individual books.
 
 - **🛠 Technical Excellence**:
-  - **Caching**: Performance optimized using **Redis**.
+  - **Caching & Rate Limiting**: Performance optimized and secured using **Redis** and `@nestjs/throttler`.
+  - **Unified Response Architectures**: Global `TransformInterceptor` cleanly packages standard returns, stripping presentation layers from services.
+  - **Intelligent Database Exceptions**: Global Prisma Filter translates database exceptions (e.g. Missing records or constraints) transparently into native HTTP codes over 500s.
+  - **Strong Type Safety**: All layers enforce rigorous `PaginatedResult` abstractions mapped perfectly against Prisma generated payloads.
   - **File Uploads**: Profile picture support via Multer.
-  - **Pagination**: Efficient data retrieval for large lists.
-  - **Validation**: Strict input validation using `class-validator`.
-  - **Prisma ORM**: Type-safe database queries and automated migrations.
+  - **Pagination**: Computed deep-metadata (total pages, current cursor, bounds checking) returned natively for large lists.
 
 ---
 
@@ -96,8 +99,8 @@ pnpm start:prod
 
 ## 📚 Documentation
 
-- **API Base URL**: `http://localhost:3000/api`
-- **Global Pipes**: All routes are protected with `ValidationPipe` (whitelist and transform enabled).
+- **Swagger UI**: Interactive API documentation structurally available at `http://localhost:3000/api/docs`.
+- **Global Pipes & Serialization**: All routes are protected with `ValidationPipe` (whitelist and transform enabled) and standardized JSON output via global Interceptors.
 - **Static Files**: Uploaded profile pictures are served via `/uploads/`.
 
 ## 📄 License
