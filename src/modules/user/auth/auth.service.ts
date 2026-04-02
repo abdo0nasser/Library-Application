@@ -10,7 +10,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { hash, verify } from 'src/utils/argon';
 import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
-import { JwtPayloadType } from 'src/utils/types';
+import { FacebookUser, JwtPayloadType } from 'src/utils/types';
 import { unlink } from 'fs/promises';
 import { MailService } from 'src/modules/mail/mail.service';
 import { randomBytes } from 'crypto';
@@ -34,16 +34,21 @@ export class AuthService {
   async createUser(
     createUserDto: CreateUserDto,
     profilePath: string | null,
-  ): Promise<{ accessToken: string; message: string }> {
+  ) {
     this.logger.log(`Creating user with email: ${createUserDto.email}`);
     const existingUser = await this.prismaService.user.findUnique({
       where: { email: createUserDto.email },
     });
     if (existingUser) {
-      this.logger.warn(`Signup attempt with existing email: ${createUserDto.email}`);
+      this.logger.warn(
+        `Signup attempt with existing email: ${createUserDto.email}`,
+      );
       if (profilePath) {
         await unlink(profilePath).catch((err) =>
-          this.logger.error(`Failed to delete orphaned image: ${profilePath}`, err),
+          this.logger.error(
+            `Failed to delete orphaned image: ${profilePath}`,
+            err,
+          ),
         );
       }
       throw new BadRequestException('User with this email already exists');
@@ -59,7 +64,9 @@ export class AuthService {
         },
       });
 
-      this.logger.log(`User created successfully: id=${user.id}, email=${user.email}`);
+      this.logger.log(
+        `User created successfully: id=${user.id}, email=${user.email}`,
+      );
 
       const tokenPayload: JwtPayloadType = {
         sub: user.id,
@@ -74,10 +81,16 @@ export class AuthService {
         message: 'Verify your email from the email sent to you',
       };
     } catch (e: unknown) {
-      this.logger.error(`Failed to create user: ${createUserDto.email}`, e instanceof Error ? e.stack : String(e));
+      this.logger.error(
+        `Failed to create user: ${createUserDto.email}`,
+        e instanceof Error ? e.stack : String(e),
+      );
       if (profilePath) {
         await unlink(profilePath).catch((err) =>
-          this.logger.error(`Failed to delete orphaned image: ${profilePath}`, err),
+          this.logger.error(
+            `Failed to delete orphaned image: ${profilePath}`,
+            err,
+          ),
         );
       }
       const message = e instanceof Error ? e.message : 'Failed to create user';
@@ -85,7 +98,7 @@ export class AuthService {
     }
   }
 
-  async login(loginDto: LoginDto): Promise<{ accessToken: string }> {
+  async login(loginDto: LoginDto) {
     this.logger.log(`Login attempt for email: ${loginDto.email}`);
     const user = await this.prismaService.user.findUnique({
       where: { email: loginDto.email },
@@ -145,7 +158,9 @@ export class AuthService {
         verificationCode,
       );
     } catch {
-      this.logger.error(`Failed to send verification email for user: id=${user.sub}`);
+      this.logger.error(
+        `Failed to send verification email for user: id=${user.sub}`,
+      );
       await this.cache.del(String(user.sub));
       throw new BadRequestException('Failed to send verification email');
     }
@@ -187,12 +202,11 @@ export class AuthService {
       });
 
       this.logger.log(`Email verified for user: id=${id}`);
-      return {
-        data: { user: user, accessToken },
-        message: 'User has been verified',
-      };
+      return { user, accessToken };
     } catch {
-      this.logger.error(`Failed to update verification status for user: id=${id}`);
+      this.logger.error(
+        `Failed to update verification status for user: id=${id}`,
+      );
       throw new BadRequestException('Failed to update verification status');
     }
   }
@@ -263,6 +277,59 @@ export class AuthService {
       this.logger.error(`Failed to reset password for email: ${email}`);
       throw new BadRequestException('Failed to reset password');
     }
+  }
+
+  async facebookAuth(facebookAuthData: FacebookUser) {
+    this.logger.log(
+      `Facebook auth attempt for email: ${facebookAuthData.email}`,
+    );
+
+    let user = await this.prismaService.user.findFirst({
+      where: {
+        OR: [
+          { facebook_id: facebookAuthData.id },
+          { email: facebookAuthData.email },
+        ],
+      },
+    });
+
+    if (!user) {
+      const randomPassword = randomBytes(32).toString('hex');
+      user = await this.prismaService.user.create({
+        data: {
+          facebook_id: facebookAuthData.id,
+          email: facebookAuthData.email,
+          name: `${facebookAuthData.firstName} ${facebookAuthData.lastName}`.trim(),
+          age: null,
+          password: await hash(randomPassword),
+          email_verified_at: new Date(),
+        },
+      });
+      this.logger.log(
+        `New user created via Facebook: id=${user.id}, email=${user.email}`,
+      );
+    } else if (!user.facebook_id) {
+      // Link the facebook account if not linked
+      user = await this.prismaService.user.update({
+        where: { id: user.id },
+        data: {
+          facebook_id: facebookAuthData.id,
+          email_verified_at: user.email_verified_at || new Date(),
+        },
+      });
+      this.logger.log(
+        `Linked Facebook account to existing user: id=${user.id}`,
+      );
+    }
+    const accessToken = await this.generateAccessToken({
+      sub: user.id,
+      email: user.email,
+      role: user.user_role,
+      isVerified: true,
+    });
+
+    this.logger.log(`Facebook login successful for user: id=${user.id}`);
+    return { accessToken };
   }
 
   private async generateAccessToken(payload: JwtPayloadType): Promise<string> {

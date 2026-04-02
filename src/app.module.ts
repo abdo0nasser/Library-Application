@@ -14,6 +14,7 @@ import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import { TransformInterceptor } from './interceptors/transform.interceptor';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis'
         throttlers: [
           {
             ttl: seconds(config.get<number>('THROTTLE_TTL', 60)),
-            limit: config.get<number>('THROTTLE_LIMIT', 10),
+            limit: config.get<number>('THROTTLE_LIMIT', 30),
           },
         ],
         storage: new ThrottlerStorageRedisService(
@@ -67,8 +68,9 @@ import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis'
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
-    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })
 export class AppModule {}

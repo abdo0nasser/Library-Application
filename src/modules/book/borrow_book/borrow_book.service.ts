@@ -4,7 +4,8 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
-import { JwtPayloadType } from 'src/utils/types';
+import { JwtPayloadType, PaginatedResult } from 'src/utils/types';
+import { borrow_record } from 'generated/prisma/client';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { BorrowBookDto } from '../dto/borrow-book.dto';
 import { ReturnBookDto } from '../dto/return-book.dto';
@@ -22,7 +23,10 @@ export class BorrowBookService {
     this.logger.setContext(BorrowBookService.name);
   }
 
-  async getSpecificBorrowStatus(userPayload: JwtPayloadType, borrowId: number) {
+  async getSpecificBorrowStatus(
+    userPayload: JwtPayloadType,
+    borrowId: number,
+  ) {
     this.logger.log(`Fetching borrow record: id=${borrowId}`);
     const borrowStatus = await this.prismaService.borrow_record.findUnique({
       where: { borrow_record_id: borrowId },
@@ -34,10 +38,13 @@ export class BorrowBookService {
       borrowStatus.user_id,
       'You are not authorized to view this record',
     );
-    return { data: borrowStatus };
+    return borrowStatus;
   }
 
-  async getBookBorrowingRecord(bookId: number, paginationDto: PaginationDto) {
+  async getBookBorrowingRecord(
+    bookId: number,
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<borrow_record>> {
     this.logger.log(`Fetching borrowing records for book: id=${bookId}`);
     const book = await this.prismaService.book.findUnique({
       where: { id: bookId },
@@ -49,17 +56,22 @@ export class BorrowBookService {
       take: paginationDto.take,
       skip: paginationDto.skip,
     });
+    const count = await this.prismaService.borrow_record.count();
 
     if (!bookBorrowed || bookBorrowed.length === 0)
       throw new NotFoundException("Book doesn't have any records");
-    return { data: bookBorrowed };
+    
+    return { 
+      data: bookBorrowed, 
+      metadata: paginationDto.getMeta(count, bookBorrowed.length) 
+    };
   }
 
   async getUserBorrowingRecord(
     userPayload: JwtPayloadType,
     userId: number,
     paginationDto: PaginationDto,
-  ) {
+  ): Promise<PaginatedResult<borrow_record>> {
     this.logger.log(`Fetching borrowing records for user: id=${userId}`);
     verifyOwnershipOrAdmin(
       userPayload,
@@ -76,10 +88,15 @@ export class BorrowBookService {
       take: paginationDto.take,
       skip: paginationDto.skip,
     });
+    const count = await this.prismaService.borrow_record.count();
 
-    if (!userBorrowed)
+    if (!userBorrowed || userBorrowed.length === 0)
       throw new NotFoundException("User didn't make any borrow requests");
-    return { data: userBorrowed };
+    
+    return { 
+      data: userBorrowed, 
+      metadata: paginationDto.getMeta(count, userBorrowed.length) 
+    };
   }
 
   async borrowBook(
@@ -133,12 +150,17 @@ export class BorrowBookService {
         `Book borrowed: record_id=${record.borrow_record_id}, user_id=${user_id}, book_id=${book_id}, days=${borrowBookDto.days_to_return}`,
       );
 
-      return { data: record };
+      return record;
     });
   }
 
-  async returnBook(user_id: number, returnBookDto: ReturnBookDto) {
-    this.logger.log(`User id=${user_id} returning book: id=${returnBookDto.book_id}`);
+  async returnBook(
+    user_id: number,
+    returnBookDto: ReturnBookDto,
+  ) {
+    this.logger.log(
+      `User id=${user_id} returning book: id=${returnBookDto.book_id}`,
+    );
     return await this.prismaService.$transaction(async (prisma) => {
       const book = await prisma.book.findUnique({
         where: { id: returnBookDto.book_id },

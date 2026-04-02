@@ -13,17 +13,19 @@ model user {
   name              String
   email             String     @unique
   password          String
-  age               Int
+  age               Int?
   description       String?
   user_profile      String?
   createdAt         DateTime   @default(now())
   user_role         USER_ROLES @default(NORMAL)
   email_verified_at DateTime?
+  facebook_id       String?    @unique
 
   borrow_records borrow_record[]
   books          book[]
 
   @@index([email])
+  @@index([facebook_id])
 }
 
 model book {

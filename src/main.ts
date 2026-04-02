@@ -5,6 +5,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -17,6 +18,8 @@ async function bootstrap() {
   });
 
   app.use(helmet());
+  app.enableCors();
+  app.use(cookieParser());
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -32,7 +35,7 @@ async function bootstrap() {
       'A comprehensive API for managing personal book collections and lending',
     )
     .setVersion('1.0')
-    .addBearerAuth()
+    .addCookieAuth('access_token')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);

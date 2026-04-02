@@ -26,7 +26,7 @@ export class AuthGuard implements CanActivate {
     if (isPublic) return true;
 
     const request = context.switchToHttp().getRequest();
-    const token = this.extractTokenFromHeader(request);
+    const token = this.extractTokenFromCookie(request);
 
     if (!token) throw new UnauthorizedException();
 
@@ -40,9 +40,7 @@ export class AuthGuard implements CanActivate {
     return true;
   }
 
-  private extractTokenFromHeader(request: Request): string | undefined {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-
-    return type?.toLowerCase() === 'bearer' ? token : undefined;
+  private extractTokenFromCookie(request: Request): string | undefined {
+    return request.cookies?.access_token;
   }
 }

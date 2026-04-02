@@ -18,10 +18,10 @@ import { RolesGuard } from 'src/guards/roles.guard';
 import { Roles } from 'src/decorators/user-role.decorator';
 import { BorrowBookDto } from '../dto/borrow-book.dto';
 import { verifyOwnershipOrAdmin } from 'src/utils/authorization';
-import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
-@ApiBearerAuth()
 @Controller('borrow-book')
+@ApiCookieAuth()
 export class BorrowBookController {
   constructor(private readonly borrowBookService: BorrowBookService) {}
 

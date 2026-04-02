@@ -20,7 +20,21 @@ export class PaginationDto {
   get skip(): number {
     return (this.page - 1) * this.limit;
   }
+
   get take(): number {
     return this.limit;
+  }
+
+  getMeta(totalItems: number, itemCount: number) {
+    const totalPages = Math.ceil(totalItems / this.limit);
+    return {
+      totalItems,
+      itemCount,
+      itemsPerPage: this.limit,
+      totalPages,
+      currentPage: this.page,
+      hasNextPage: this.page < totalPages,
+      hasPreviousPage: this.page > 1,
+    };
   }
 }

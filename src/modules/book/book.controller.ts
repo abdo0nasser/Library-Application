@@ -15,9 +15,9 @@ import { CurrentUser } from 'src/decorators/get-current-user.decorator';
 import type { JwtPayloadType } from 'src/utils/types';
 import { PaginationDto } from 'src/utils/pagination.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
-import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
-@ApiBearerAuth()
+@ApiCookieAuth()
 @Controller('book')
 export class BookController {
   constructor(private readonly bookService: BookService) {}
@@ -26,7 +26,8 @@ export class BookController {
   @ApiOperation({ summary: 'Get all books' })
   @ApiResponse({ status: 200, description: 'List of books' })
   async getBooks(@Query() paginationDto: PaginationDto) {
-    return await this.bookService.getAllBooks(paginationDto);
+    const books = await this.bookService.getAllBooks(paginationDto);
+    return books;
   }
 
   @Get(':id')

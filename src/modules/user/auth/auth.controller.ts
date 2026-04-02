@@ -1,3 +1,4 @@
+import { ConfigService } from '@nestjs/config';
 import {
   Body,
   Controller,
@@ -8,7 +9,10 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  Req,
+  Res,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
@@ -20,19 +24,25 @@ import { Public } from 'src/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from 'src/utils/multer-config';
 import { CurrentUser } from 'src/decorators/get-current-user.decorator';
-import type { JwtPayloadType } from 'src/utils/types';
+import type { JwtPayloadType, FacebookUser } from 'src/utils/types';
 import {
-  ApiBearerAuth,
   ApiConsumes,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import type { Request, Response } from 'express';
+
+type AuthenticatedRequest = Request & { user?: FacebookUser };
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Public()
   @Post('login')
@@ -40,8 +50,44 @@ export class AuthController {
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async loginUser(@Body() loginDto: LoginDto) {
-    return await this.authService.login(loginDto);
+  async loginUser(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.login(loginDto);
+    this.tokenCookie(result.accessToken, res);
+
+    const { accessToken, ...rest } = result;
+    return Object.keys(rest).length ? rest : undefined;
+  }
+
+  @Public()
+  @Get('facebook-login')
+  @UseGuards(AuthGuard('facebook'))
+  @ApiOperation({ summary: 'Login user with facebook account' })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  facebookLogin(): void {}
+
+  @Public()
+  @Get('facebook-redirect')
+  @UseGuards(AuthGuard('facebook'))
+  @ApiOperation({ summary: 'Facebook OAuth callback redirect' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirect to frontend with JWT set in HTTP-only cookie',
+  })
+  async facebookRedirect(
+    @Req() req: AuthenticatedRequest,
+    @Res() res: Response,
+  ) {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    const user = req.user as FacebookUser;
+    if (!user) return res.redirect(`${frontendUrl}/login?error=auth_failed`);
+
+    const result = await this.authService.facebookAuth(user);
+    this.tokenCookie(result.accessToken, res);
+    return res.redirect(`${frontendUrl}/auth/facebook/callback`);
   }
 
   @Public()
@@ -53,13 +99,20 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   async createUser(
     @Body() createUserDto: CreateUserDto,
+    @Res({ passthrough: true }) res: Response,
     @UploadedFile() file?: Express.Multer.File,
   ) {
     const profilePicPath = file?.path ?? null;
-    return await this.authService.createUser(createUserDto, profilePicPath);
+    const result = await this.authService.createUser(
+      createUserDto,
+      profilePicPath,
+    );
+    this.tokenCookie(result.accessToken, res);
+
+    const { accessToken, ...rest } = result;
+    return rest;
   }
 
-  @ApiBearerAuth()
   @Post('send-verification')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Send verification email' })
@@ -75,8 +128,13 @@ export class AuthController {
   async verifyEmail(
     @Param('id', ParseIntPipe) userId: number,
     @Query('verification-code') verificationCode: string,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return await this.authService.verifyEmail(userId, verificationCode);
+    const result = await this.authService.verifyEmail(userId, verificationCode);
+    this.tokenCookie(result.accessToken, res);
+
+    const { accessToken, ...userData } = result;
+    return userData;
   }
 
   @Public()
@@ -95,5 +153,15 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Password reset successful' })
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return await this.authService.resetPassword(resetPasswordDto);
+  }
+
+  private tokenCookie(token: string, @Res() res: Response) {
+    res.cookie('access_token', token, {
+      httpOnly: true,
+      secure: this.configService.get<string>('NODE_ENV') === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
   }
 }

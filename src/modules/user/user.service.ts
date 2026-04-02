@@ -5,6 +5,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtPayloadType } from 'src/utils/types';
 import { PaginationDto } from 'src/utils/pagination.dto';
 import { AppLoggerService } from 'src/modules/logger/logger.service';
+import { Prisma } from 'generated/prisma/client';
 
 @Injectable()
 export class UserService {
@@ -16,7 +17,9 @@ export class UserService {
   }
 
   async getAllUsers(paginationDto: PaginationDto) {
-    this.logger.log(`Fetching users — take=${paginationDto.take}, skip=${paginationDto.skip}`);
+    this.logger.log(
+      `Fetching users — take=${paginationDto.take}, skip=${paginationDto.skip}`,
+    );
     const users = await this.prismaService.user.findMany({
       omit: { password: true },
       take: paginationDto.take,
@@ -47,7 +50,7 @@ export class UserService {
     });
     if (!user) throw new NotFoundException('No user with this id');
 
-    const updateData: any = {};
+    const updateData: Prisma.userUpdateInput = {};
     if (updateUserDto.age !== undefined) updateData.age = updateUserDto.age;
     if (updateUserDto.description !== undefined)
       updateData.description = updateUserDto.description;
@@ -66,7 +69,9 @@ export class UserService {
       data: updateData,
       omit: { password: true },
     });
-    this.logger.log(`User updated: id=${id}, fields=[${Object.keys(updateData).join(', ')}]`);
+    this.logger.log(
+      `User updated: id=${id}, fields=[${Object.keys(updateData).join(', ')}]`,
+    );
     return updated;
   }
 

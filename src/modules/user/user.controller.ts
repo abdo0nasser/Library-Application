@@ -24,15 +24,15 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from 'src/utils/multer-config';
 import { verifyOwnershipOrAdmin } from 'src/utils/authorization';
 import {
-  ApiBearerAuth,
   ApiConsumes,
+  ApiCookieAuth,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 
 @ApiTags('Users')
-@ApiBearerAuth()
+@ApiCookieAuth()
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -44,6 +44,13 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'List of users' })
   async getAllUser(@Query() paginationDto: PaginationDto) {
     return await this.userService.getAllUsers(paginationDto);
+  }
+
+  @Get('me')
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({ status: 200, description: 'Current user data' })
+  async getCurrentUser(@CurrentUser() user: JwtPayloadType) {
+    return await this.userService.getUser(user.sub);
   }
 
   @Get(':id')

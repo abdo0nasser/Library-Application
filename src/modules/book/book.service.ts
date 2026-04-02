@@ -5,7 +5,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddBookDto } from './dto/add-book.dto';
-import { JwtPayloadType } from 'src/utils/types';
+import { JwtPayloadType, PaginatedResult } from 'src/utils/types';
+import { book } from 'generated/prisma/client';
 import { PaginationDto } from 'src/utils/pagination.dto';
 import { verifyOwnershipOrAdmin } from 'src/utils/authorization';
 import { UpdateBookDto } from './dto/update-book.dto';
@@ -20,13 +21,21 @@ export class BookService {
     this.logger.setContext(BookService.name);
   }
 
-  async getAllBooks(paginationDto: PaginationDto) {
-    this.logger.log(`Fetching books — take=${paginationDto.take}, skip=${paginationDto.skip}`);
+  async getAllBooks(
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<book>> {
+    this.logger.log(
+      `Fetching books — take=${paginationDto.take}, skip=${paginationDto.skip}`,
+    );
     const books = await this.prismaService.book.findMany({
       take: paginationDto.take,
       skip: paginationDto.skip,
     });
-    return books;
+    const count = await this.prismaService.book.count();
+    return { 
+      data: books, 
+      metadata: paginationDto.getMeta(count, books.length) 
+    };
   }
 
   async getBookById(id: number) {
@@ -36,7 +45,10 @@ export class BookService {
     return book;
   }
 
-  async addBook(user: JwtPayloadType, addBookDto: AddBookDto) {
+  async addBook(
+    user: JwtPayloadType,
+    addBookDto: AddBookDto,
+  ) {
     this.logger.log(`User id=${user.sub} adding book: "${addBookDto.title}"`);
     if (addBookDto.total_copies < addBookDto.available_copies)
       throw new BadRequestException(
@@ -72,20 +84,18 @@ export class BookService {
       'You can only update your own books',
     );
 
-    try {
-      const book = await this.prismaService.book.update({
-        where: { id: bookId },
-        data: updateBookDto,
-      });
-      this.logger.log(`Book updated: id=${book.id}`);
-      return book;
-    } catch (error: any) {
-      if (error.code === 'P2025') throw new NotFoundException('Book not found');
-      throw error;
-    }
+    const book = await this.prismaService.book.update({
+      where: { id: bookId },
+      data: updateBookDto,
+    });
+    this.logger.log(`Book updated: id=${book.id}`);
+    return book;
   }
 
-  async deleteBook(user: JwtPayloadType, bookId: number) {
+  async deleteBook(
+    user: JwtPayloadType,
+    bookId: number,
+  ) {
     this.logger.log(`User id=${user.sub} deleting book: id=${bookId}`);
     const existingBook = await this.prismaService.book.findUnique({
       where: { id: bookId },
@@ -98,15 +108,10 @@ export class BookService {
       'You can only delete your own books',
     );
 
-    try {
-      const deletedBook = await this.prismaService.book.delete({
-        where: { id: bookId },
-      });
-      this.logger.log(`Book deleted: id=${bookId}`);
-      return deletedBook;
-    } catch (error: any) {
-      if (error.code === 'P2025') throw new NotFoundException('Book not found');
-      throw error;
-    }
+    const deletedBook = await this.prismaService.book.delete({
+      where: { id: bookId },
+    });
+    this.logger.log(`Book deleted: id=${bookId}`);
+    return deletedBook;
   }
 }

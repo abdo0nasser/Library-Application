@@ -17,15 +17,39 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
     const response = ctx.getResponse<Response>();
 
-    const status =
+    let status =
       exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const message =
+    let message =
       exception instanceof HttpException
         ? exception.getResponse()
         : 'Internal server error';
+
+    if (
+      typeof exception === 'object' &&
+      exception !== null &&
+      'code' in exception &&
+      typeof (exception as any).clientVersion === 'string'
+    ) {
+      // Prisma Client Known Request Error Duck Typing due to dynamic imports
+      const prismaError = exception as any;
+      switch (prismaError.code) {
+        case 'P2025':
+          status = HttpStatus.NOT_FOUND;
+          message = 'Record not found';
+          break;
+        case 'P2002':
+          status = HttpStatus.CONFLICT;
+          message = 'Unique constraint violation';
+          break;
+        default:
+          status = HttpStatus.BAD_REQUEST;
+          message = prismaError.message.replace(/\n/g, '');
+          break;
+      }
+    }
 
     // Log the exception — include stack trace for 5xx errors
     if (status >= 500) {
