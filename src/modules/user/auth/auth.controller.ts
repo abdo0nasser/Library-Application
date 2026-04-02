@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -155,13 +156,32 @@ export class AuthController {
     return await this.authService.resetPassword(resetPasswordDto);
   }
 
-  private tokenCookie(token: string, @Res() res: Response) {
-    res.cookie('access_token', token, {
+  @Delete('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Logout user' })
+  @ApiResponse({ status: 200, description: 'Successful logout' })
+  async logoutUser(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const token = req.cookies['access_token'];
+    res.clearCookie('access_token', this.cookieOptions);
+    return await this.authService.logout(token);
+  }
+
+  private get cookieOptions() {
+    return {
       httpOnly: true,
       secure: this.configService.get<string>('NODE_ENV') === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: 'lax' as const,
       path: '/',
+    };
+  }
+
+  private tokenCookie(token: string, @Res() res: Response) {
+    res.cookie('access_token', token, {
+      ...this.cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
   }
 }

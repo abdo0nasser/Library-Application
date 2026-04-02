@@ -31,10 +31,7 @@ export class AuthService {
     this.logger.setContext(AuthService.name);
   }
 
-  async createUser(
-    createUserDto: CreateUserDto,
-    profilePath: string | null,
-  ) {
+  async createUser(createUserDto: CreateUserDto, profilePath: string | null) {
     this.logger.log(`Creating user with email: ${createUserDto.email}`);
     const existingUser = await this.prismaService.user.findUnique({
       where: { email: createUserDto.email },
@@ -330,6 +327,22 @@ export class AuthService {
 
     this.logger.log(`Facebook login successful for user: id=${user.id}`);
     return { accessToken };
+  }
+
+  async logout(token: string) {
+    const decodedToken = this.jwtService.decode(token);
+    const now = Date.now() / 1000;
+    const secondsLeft = decodedToken.exp - now;
+
+    if (secondsLeft > 0) {
+      await this.cache.set(
+        `blacklist:${token}`,
+        'true',
+        Math.ceil(secondsLeft * 1000),
+      );
+    } else throw new BadRequestException('Incorrect token');
+
+    return { message: 'Token has been successfully blacklisted' };
   }
 
   private async generateAccessToken(payload: JwtPayloadType): Promise<string> {

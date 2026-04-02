@@ -1,7 +1,9 @@
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import {
   BadRequestException,
   CanActivate,
   ExecutionContext,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -14,6 +16,7 @@ import { IS_PUBLIC_KEY } from 'src/decorators/public.decorator';
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private reflector: Reflector,
   ) {}
 
@@ -28,7 +31,8 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromCookie(request);
 
-    if (!token) throw new UnauthorizedException();
+    if (!token || (await this.cache.get(`blacklist:${token}`)))
+      throw new UnauthorizedException();
 
     try {
       const payload = await this.jwtService.verifyAsync(token);
