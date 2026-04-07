@@ -27,3 +27,14 @@ export interface PaginatedResult<T> {
     [key: string]: any;
   };
 }
+
+export interface SendMailData {
+  userId: number;
+  email: string;
+  code: string;
+}
+
+export enum EMAIL_JOB_NAMES {
+  SEND_VERIFICATION_EMAIL = 'send-verification-email',
+  SEND_RESET_PASSWORD_EMAIL = 'send-reset-password-email',
+}

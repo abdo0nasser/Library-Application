@@ -10,23 +10,24 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { hash, verify } from 'src/utils/argon';
 import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
-import { FacebookUser, JwtPayloadType } from 'src/utils/types';
+import { EMAIL_JOB_NAMES, FacebookUser, JwtPayloadType } from 'src/utils/types';
 import { unlink } from 'fs/promises';
-import { MailService } from 'src/modules/mail/mail.service';
 import { randomBytes } from 'crypto';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { AppLoggerService } from 'src/modules/logger/logger.service';
+import { Queue } from 'bullmq';
+import { InjectQueue } from '@nestjs/bullmq';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly mailService: MailService,
     private readonly configService: ConfigService,
-    @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly logger: AppLoggerService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    @InjectQueue('emails') private readonly emailsQueue: Queue,
   ) {
     this.logger.setContext(AuthService.name);
   }
@@ -72,7 +73,9 @@ export class AuthService {
         isVerified: false,
       };
       const accessToken = await this.generateAccessToken(tokenPayload);
+
       await this.sendVerification(tokenPayload);
+
       return {
         accessToken,
         message: 'Verify your email from the email sent to you',
@@ -132,7 +135,6 @@ export class AuthService {
   }
 
   async sendVerification(user: JwtPayloadType) {
-    this.logger.log(`Sending verification email for user: id=${user.sub}`);
     if (user.isVerified)
       throw new BadRequestException('User is already verified');
 
@@ -142,28 +144,20 @@ export class AuthService {
       );
 
     const verificationCode = randomBytes(32).toString('hex');
+
     await this.cache.set(
       String(user.sub),
       verificationCode,
       this.configService.get<number>('REDIS_TTL'),
     );
 
-    try {
-      await this.mailService.sendVerificationMail(
-        user.sub,
-        user.email,
-        verificationCode,
-      );
-    } catch {
-      this.logger.error(
-        `Failed to send verification email for user: id=${user.sub}`,
-      );
-      await this.cache.del(String(user.sub));
-      throw new BadRequestException('Failed to send verification email');
-    }
+    await this.emailsQueue.add(EMAIL_JOB_NAMES.SEND_VERIFICATION_EMAIL, {
+      userId: user.sub,
+      email: user.email,
+      code: verificationCode,
+    });
 
-    this.logger.log(`Verification email sent for user: id=${user.sub}`);
-    return { message: 'Verification mail has been sent' };
+    return { message: 'Verification email has been queued.' };
   }
 
   async verifyEmail(id: number, verificationCode: string) {
@@ -215,27 +209,27 @@ export class AuthService {
       omit: { password: true },
     });
     if (!user) throw new NotFoundException('User not found');
+    const tokenInCache = await this.cache.get<string>(`reset-${email}`);
+    if (tokenInCache) {
+      throw new BadRequestException(
+        'An active password reset code already exists for this email. Please wait until it expires.',
+      );
+    }
 
     const verificationCode = randomBytes(32).toString('hex');
+
     await this.cache.set(
-      `reset-${user.email}`,
+      `reset-${email}`,
       verificationCode,
       this.configService.get<number>('REDIS_TTL'),
     );
 
-    try {
-      await this.mailService.sendResetPasswordMail(
-        user.email,
-        verificationCode,
-      );
-    } catch {
-      this.logger.error(`Failed to send reset password email to: ${email}`);
-      await this.cache.del(`reset-${user.email}`);
-      throw new BadRequestException('Failed to send reset password email');
-    }
+    await this.emailsQueue.add(EMAIL_JOB_NAMES.SEND_RESET_PASSWORD_EMAIL, {
+      email: user.email,
+      code: verificationCode,
+    });
 
-    this.logger.log(`Password reset email sent to: ${email}`);
-    return { message: 'Password reset email has been sent' };
+    return { message: 'Reset password email has been queued.' };
   }
 
   async resetPassword(resetDto: {

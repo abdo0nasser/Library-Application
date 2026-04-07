@@ -15,6 +15,8 @@ import { PrismaModule } from './modules/prisma/prisma.module';
 import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { TransformInterceptor } from './interceptors/transform.interceptor';
+import { BullModule } from '@nestjs/bullmq';
+import { WorkerModule } from './modules/worker/worker.module';
 
 @Module({
   imports: [
@@ -60,11 +62,25 @@ import { TransformInterceptor } from './interceptors/transform.interceptor';
         };
       },
     }),
-
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        return {
+          connection: {
+            host: config.get<string>('BULLMQ_HOST'),
+            port: config.get<number>('BULLMQ_PORT'),
+          },
+          defaultJobOptions: {
+            attempts: 3,
+          },
+        };
+      },
+    }),
     BookModule,
     MailModule,
+    WorkerModule,
   ],
-  controllers: [],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
