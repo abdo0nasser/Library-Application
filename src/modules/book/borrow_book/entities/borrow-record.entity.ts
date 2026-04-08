@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { borrow_record } from 'generated/prisma/client';
-import { borrow_status } from 'generated/prisma/enums';
+import { borrow_record } from 'src/generated/prisma/client';
+import { borrow_status } from 'src/generated/prisma/enums';
 
 export class BorrowRecordEntity implements borrow_record {
   @ApiProperty()

@@ -1,6 +1,6 @@
 import { ForbiddenException } from '@nestjs/common';
 import { JwtPayloadType } from './types';
-import { USER_ROLES } from 'generated/prisma/enums';
+import { USER_ROLES } from 'src/generated/prisma/enums';
 
 /**
  * Validates that the current user is either an ADMIN or the owner of the resource.

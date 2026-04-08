@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AddBookDto } from './dto/add-book.dto';
 import { JwtPayloadType, PaginatedResult } from 'src/utils/types';
-import { book } from 'generated/prisma/client';
+import { book } from 'src/generated/prisma/client';
 import { PaginationDto } from 'src/utils/pagination.dto';
 import { verifyOwnershipOrAdmin } from 'src/utils/authorization';
 import { UpdateBookDto } from './dto/update-book.dto';

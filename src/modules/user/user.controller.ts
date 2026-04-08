@@ -16,7 +16,7 @@ import 'dotenv/config';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles } from 'src/decorators/user-role.decorator';
 import { RolesGuard } from 'src/guards/roles.guard';
-import { USER_ROLES } from 'generated/prisma/enums';
+import { USER_ROLES } from 'src/generated/prisma/enums';
 import type { JwtPayloadType } from 'src/utils/types';
 import { CurrentUser } from 'src/decorators/get-current-user.decorator';
 import { PaginationDto } from 'src/utils/pagination.dto';

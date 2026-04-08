@@ -13,7 +13,7 @@ import { BorrowBookService } from './borrow_book.service';
 import { CurrentUser } from 'src/decorators/get-current-user.decorator';
 import type { JwtPayloadType } from 'src/utils/types';
 import { PaginationDto } from 'src/utils/pagination.dto';
-import { USER_ROLES } from 'generated/prisma/enums';
+import { USER_ROLES } from 'src/generated/prisma/enums';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { Roles } from 'src/decorators/user-role.decorator';
 import { BorrowBookDto } from '../dto/borrow-book.dto';

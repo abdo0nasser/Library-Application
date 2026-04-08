@@ -5,7 +5,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtPayloadType } from 'src/utils/types';
 import { PaginationDto } from 'src/utils/pagination.dto';
 import { AppLoggerService } from 'src/modules/logger/logger.service';
-import { Prisma } from 'generated/prisma/client';
+import { Prisma } from 'src/generated/prisma/client';
 
 @Injectable()
 export class UserService {

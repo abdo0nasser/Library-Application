@@ -5,11 +5,11 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { JwtPayloadType, PaginatedResult } from 'src/utils/types';
-import { borrow_record } from 'generated/prisma/client';
+import { borrow_record } from 'src/generated/prisma/client';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { BorrowBookDto } from '../dto/borrow-book.dto';
 import { ReturnBookDto } from '../dto/return-book.dto';
-import { borrow_status } from 'generated/prisma/enums';
+import { borrow_status } from 'src/generated/prisma/enums';
 import { PaginationDto } from 'src/utils/pagination.dto';
 import { verifyOwnershipOrAdmin } from 'src/utils/authorization';
 import { AppLoggerService } from 'src/modules/logger/logger.service';

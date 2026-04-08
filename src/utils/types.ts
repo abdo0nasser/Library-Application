@@ -1,4 +1,4 @@
-import { USER_ROLES } from 'generated/prisma/enums';
+import { USER_ROLES } from 'src/generated/prisma/enums';
 
 export type JwtPayloadType = {
   sub: number;
