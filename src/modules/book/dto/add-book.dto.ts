@@ -2,7 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsInt, IsNotEmpty, IsString, Length, Max, Min } from 'class-validator';
 
 export class AddBookDto {
-  @ApiProperty({ example: 'The Catcher in the Rye', minLength: 2, maxLength: 30 })
+  @ApiProperty({
+    example: 'The Catcher in the Rye',
+    minLength: 2,
+    maxLength: 30,
+  })
   @IsString()
   @Length(2, 30)
   @IsNotEmpty()

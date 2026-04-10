@@ -24,7 +24,9 @@ import { WorkerModule } from './modules/worker/worker.module';
     LoggerModule,
     UserModule,
     ConfigModule.forRoot({
+      envFilePath: ['.env', '.env.dev'],
       isGlobal: true,
+      expandVariables: true,
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
@@ -58,7 +60,7 @@ import { WorkerModule } from './modules/worker/worker.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         return {
-          stores: [new KeyvRedis(config.get<string>('REDIS_URL'))],
+          stores: [new KeyvRedis(config.get<string>('CACHE_URL'))],
         };
       },
     }),
@@ -68,8 +70,8 @@ import { WorkerModule } from './modules/worker/worker.module';
       useFactory: (config: ConfigService) => {
         return {
           connection: {
-            host: config.get<string>('BULLMQ_HOST'),
-            port: config.get<number>('BULLMQ_PORT'),
+            host: config.get<string>('BROKER_HOST'),
+            port: config.get<number>('BROKER_PORT'),
           },
           defaultJobOptions: {
             attempts: 3,

@@ -15,9 +15,12 @@ import { CurrentUser } from 'src/decorators/get-current-user.decorator';
 import type { JwtPayloadType } from 'src/utils/types';
 import { PaginationDto } from 'src/utils/pagination.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
-import { ApiCookieAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiOperation } from '@nestjs/swagger';
 import { BookEntity } from './entities/book.entity';
-import {  ApiDataResponse, ApiPaginatedResponse } from 'src/utils/swagger.decorators';
+import {
+  ApiDataResponse,
+  ApiPaginatedResponse,
+} from 'src/utils/swagger.decorators';
 
 @ApiCookieAuth()
 @Controller('book')

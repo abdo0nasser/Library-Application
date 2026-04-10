@@ -23,10 +23,7 @@ export class BorrowBookService {
     this.logger.setContext(BorrowBookService.name);
   }
 
-  async getSpecificBorrowStatus(
-    userPayload: JwtPayloadType,
-    borrowId: number,
-  ) {
+  async getSpecificBorrowStatus(userPayload: JwtPayloadType, borrowId: number) {
     this.logger.log(`Fetching borrow record: id=${borrowId}`);
     const borrowStatus = await this.prismaService.borrow_record.findUnique({
       where: { borrow_record_id: borrowId },
@@ -60,10 +57,10 @@ export class BorrowBookService {
 
     if (!bookBorrowed || bookBorrowed.length === 0)
       throw new NotFoundException("Book doesn't have any records");
-    
-    return { 
-      data: bookBorrowed, 
-      metadata: paginationDto.getMeta(count, bookBorrowed.length) 
+
+    return {
+      data: bookBorrowed,
+      metadata: paginationDto.getMeta(count, bookBorrowed.length),
     };
   }
 
@@ -92,10 +89,10 @@ export class BorrowBookService {
 
     if (!userBorrowed || userBorrowed.length === 0)
       throw new NotFoundException("User didn't make any borrow requests");
-    
-    return { 
-      data: userBorrowed, 
-      metadata: paginationDto.getMeta(count, userBorrowed.length) 
+
+    return {
+      data: userBorrowed,
+      metadata: paginationDto.getMeta(count, userBorrowed.length),
     };
   }
 
@@ -154,10 +151,7 @@ export class BorrowBookService {
     });
   }
 
-  async returnBook(
-    user_id: number,
-    returnBookDto: ReturnBookDto,
-  ) {
+  async returnBook(user_id: number, returnBookDto: ReturnBookDto) {
     this.logger.log(
       `User id=${user_id} returning book: id=${returnBookDto.book_id}`,
     );

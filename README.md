@@ -67,11 +67,11 @@ Create a `.env` file in the root directory and configure the following:
 
 ```env
 PORT=3000
-DATABASE_URL="postgresql://user:password@localhost:5432/library_db"
+DB_URL="postgresql://user:password@localhost:5432/library_db"
 JWT_SECRET="your_secret_key"
 JWT_EXPIRATION_TIME="1d"
-REDIS_URL="redis://localhost:6379"
-REDIS_TTL=3600
+CACHE_URL="redis://localhost:6379"
+CACHE_TTL=3600
 MAIL_HOST="smtp.example.com"
 MAIL_USER="your-email@example.com"
 MAIL_PASS="your-password"

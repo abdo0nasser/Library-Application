@@ -41,7 +41,11 @@ export class CreateUserDto {
   @IsNotEmpty()
   age: number;
 
-  @ApiPropertyOptional({ example: 'I love reading books', minLength: 2, maxLength: 128 })
+  @ApiPropertyOptional({
+    example: 'I love reading books',
+    minLength: 2,
+    maxLength: 128,
+  })
   @IsOptional()
   @MinLength(2, { message: 'find a good description for urslf' })
   @MaxLength(128, { message: 'find a smalled description' })

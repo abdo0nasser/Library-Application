@@ -12,7 +12,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import 'dotenv/config';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles } from 'src/decorators/user-role.decorator';
 import { RolesGuard } from 'src/guards/roles.guard';

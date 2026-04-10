@@ -5,7 +5,6 @@ import { AppLoggerService } from 'src/modules/logger/logger.service';
 import { EMAIL_JOB_NAMES, SendMailData } from 'src/utils/types';
 import { Inject } from '@nestjs/common';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import { ConfigService } from '@nestjs/config';
 
 @Processor('emails', { concurrency: 3 })
 export class EmailConsumer extends WorkerHost {
