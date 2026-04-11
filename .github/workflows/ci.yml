@@ -1,0 +1,32 @@
+name: ci workflow
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['master']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: install dependencies
+        run: npm ci --verbose
+
+      - name: generate prisma client
+        run: npx prisma generate
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+
+      - name: build project
+        run: npm run build

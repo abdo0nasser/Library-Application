@@ -1,20 +1,17 @@
 FROM node:22-alpine AS base
-RUN corepack enable
 
-# Stage 1: Install all dependencies for building
+# Stage 1: Install all dependencies
 FROM base AS deps
 WORKDIR /app
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
-RUN pnpm install --frozen-lockfile
+COPY package.json package-lock.json ./
+RUN npm ci --verbose
 
-# Stage 2: Build the application
+# Stage 2: Build + prune to prod-only deps
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm build
-# Install only production dependencies to keep the image small
-RUN pnpm install --prod --frozen-lockfile
+RUN npm run build && npm prune --omit=dev
 
 # Stage 3: Final production image
 FROM base AS runner
