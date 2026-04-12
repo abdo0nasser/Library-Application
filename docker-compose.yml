@@ -1,0 +1,72 @@
+services:
+  nest-server:
+    container_name: nest-server
+    build:
+      context: .
+    restart: unless-stopped
+    ports:
+      - ${BACKEND_PORT}:${BACKEND_PORT}
+    healthcheck:
+      test: wget --spider -q http://localhost:${BACKEND_PORT}/api/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis-cache:
+        condition: service_healthy
+      redis-broker:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend_network
+
+  redis-cache:
+    image: redis:8.4.0-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend_network
+
+  redis-broker:
+    image: redis:8.4.0-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend_network
+
+  postgres:
+    image: postgres:18.1-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME} -d ${DB_NAME}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - ${DB_EXTERNAL_PORT}:5432
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    networks:
+      - backend_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  backend_network:
+    driver: bridge

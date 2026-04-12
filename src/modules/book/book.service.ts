@@ -32,9 +32,9 @@ export class BookService {
       skip: paginationDto.skip,
     });
     const count = await this.prismaService.book.count();
-    return { 
-      data: books, 
-      metadata: paginationDto.getMeta(count, books.length) 
+    return {
+      data: books,
+      metadata: paginationDto.getMeta(count, books.length),
     };
   }
 
@@ -45,10 +45,7 @@ export class BookService {
     return book;
   }
 
-  async addBook(
-    user: JwtPayloadType,
-    addBookDto: AddBookDto,
-  ) {
+  async addBook(user: JwtPayloadType, addBookDto: AddBookDto) {
     this.logger.log(`User id=${user.sub} adding book: "${addBookDto.title}"`);
     if (addBookDto.total_copies < addBookDto.available_copies)
       throw new BadRequestException(
@@ -92,10 +89,7 @@ export class BookService {
     return book;
   }
 
-  async deleteBook(
-    user: JwtPayloadType,
-    bookId: number,
-  ) {
+  async deleteBook(user: JwtPayloadType, bookId: number) {
     this.logger.log(`User id=${user.sub} deleting book: id=${bookId}`);
     const existingBook = await this.prismaService.book.findUnique({
       where: { id: bookId },
