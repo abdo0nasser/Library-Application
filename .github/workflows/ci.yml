@@ -14,6 +14,9 @@ jobs:
       - name: Git checkout
         uses: actions/checkout@v4
 
+      - name: Use example env for CI (no repo secrets)
+        run: cp .env.example .env
+
       - name: setup node
         uses: actions/setup-node@v4
         with:
@@ -25,8 +28,34 @@ jobs:
 
       - name: generate prisma client
         run: npx prisma generate
-        env:
-          DB_URL: ${{ secrets.DB_URL }}
 
       - name: build project
         run: npm run build
+
+  docker-test:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+
+      - name: Use example env for CI (no repo secrets)
+        run: cp .env.example .env
+
+      - name: Run Docker Compose (wait for healthchecks)
+        run: docker compose up -d --build --wait
+
+      - name: Wait for containers
+        run: sleep 3
+
+      - name: Check running containers
+        run: docker compose ps -a
+
+      - name: Check logs if failed
+        if: failure()
+        run: docker compose logs
+
+      - name: Shutdown
+        if: always()
+        run: docker compose down

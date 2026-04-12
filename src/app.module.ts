@@ -17,14 +17,15 @@ import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis'
 import { TransformInterceptor } from './interceptors/transform.interceptor';
 import { BullModule } from '@nestjs/bullmq';
 import { WorkerModule } from './modules/worker/worker.module';
+import { HealthController } from './health/health.controller';
 
 @Module({
+  controllers: [HealthController],
   imports: [
     PrismaModule,
     LoggerModule,
     UserModule,
     ConfigModule.forRoot({
-      envFilePath: ['.env', '.env.dev'],
       isGlobal: true,
       expandVariables: true,
     }),

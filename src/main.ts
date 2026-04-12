@@ -4,6 +4,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 
@@ -11,7 +12,12 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   });
-  app.setGlobalPrefix('api');
+  const config = app.get(ConfigService);
+  const apiPrefix = config.getOrThrow<string>('API_PREFIX');
+  const port = Number(config.getOrThrow<string>('BACKEND_PORT'));
+  const domain = config.getOrThrow<string>('DOMAIN');
+
+  app.setGlobalPrefix(apiPrefix);
 
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
@@ -19,7 +25,7 @@ async function bootstrap() {
 
   app.use(helmet());
   app.enableCors({
-    origin: 'http://localhost:5173',
+    origin: config.getOrThrow<string>('FRONTEND_URL'),
     credentials: true,
   });
   app.use(cookieParser());
@@ -32,7 +38,7 @@ async function bootstrap() {
     }),
   );
 
-  const config = new DocumentBuilder()
+  const swaggerConfig = new DocumentBuilder()
     .setTitle('Personal Library & Lending API')
     .setDescription(
       'A comprehensive API for managing personal book collections and lending',
@@ -40,14 +46,13 @@ async function bootstrap() {
     .setVersion('1.0')
     .addCookieAuth('access_token')
     .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup(`${apiPrefix}/docs`, app, document);
 
-  const port = process.env.BACKEND_PORT ?? 3000;
   await app.listen(port);
 
   const logger = new Logger('Bootstrap');
-  logger.log(`Application is running on: http://localhost:${port}/api`);
-  logger.log(`Swagger docs available at: http://localhost:${port}/api/docs`);
+  logger.log(`Application is running on: ${domain}/${apiPrefix}`);
+  logger.log(`Swagger docs available at: ${domain}/${apiPrefix}/docs`);
 }
 bootstrap();
