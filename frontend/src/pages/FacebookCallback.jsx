@@ -44,7 +44,7 @@ const FacebookCallback = () => {
             user_role: payload.role === 'USER' ? 'NORMAL' : payload.role,
             email_verified_at: payload.isVerified ? new Date() : null,
           });
-          navigate('/books');
+          navigate('/dashboard');
           return;
         }
       }
@@ -53,7 +53,7 @@ const FacebookCallback = () => {
         const res = await api.get('/user/me');
         const userData = res.data.data || res.data;
         await login('cookie-auth', userData);
-        navigate('/books');
+        navigate('/dashboard');
       } catch {
         setError('Failed to authenticate with Facebook');
       }

@@ -88,7 +88,7 @@ const BookDetail = () => {
 
   const userId = user?.id || user?.sub;
   const isOwner = userId && book.user_id && userId === book.user_id;
-  const isAdmin = user?.user_role === 'ADMIN' || user?.user_role === 'NORMAL';
+  const isAdmin = user?.user_role === 'ADMIN';
 
   const available = book.available_copies ?? 0;
   const total = book.total_copies ?? 0;

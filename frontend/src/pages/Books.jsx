@@ -38,7 +38,7 @@ const Books = () => {
     fetchBooks();
   }, [fetchBooks]);
 
-  const isAdmin = user?.user_role === "ADMIN" || user?.user_role === 'NORMAL';
+  const isAdmin = user?.user_role === 'ADMIN';
 
   if (loading) {
     return (

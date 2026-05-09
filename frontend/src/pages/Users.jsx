@@ -44,7 +44,7 @@ const Users = () => {
     fetchUsers();
   }, [fetchUsers]);
 
-  const isAdmin = currentUser?.user_role === 'ADMIN' || currentUser?.user_role === 'NORMAL';
+  const isAdmin = currentUser?.user_role === 'ADMIN';
 
   const formatDate = (date) => {
     if (!date) return '-';

@@ -37,7 +37,7 @@ export const cardVariants = {
   },
   hover: {
     y: -10,
-    boxShadow: '0 20px 50px rgba(124, 58, 237, 0.2)',
+    boxShadow: '0 20px 50px rgba(var(--primary-rgb), 0.2)',
   },
 };
 
@@ -75,7 +75,7 @@ export const buttonVariants = {
 export const inputVariants = {
   focus: {
     scale: 1.02,
-    boxShadow: '0 0 0 4px rgba(124, 58, 237, 0.15)',
+    boxShadow: '0 0 0 4px rgba(var(--primary-rgb), 0.15)',
   },
 };
 

@@ -55,7 +55,7 @@ const Login = () => {
         login('cookie-auth', userRes.data.data || userRes.data);
       }
       
-      navigate("/books");
+      navigate("/dashboard");
     } catch (err) {
       const message = err.response?.data?.message || err.message || "Login failed";
       setError(message);
