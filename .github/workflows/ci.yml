@@ -1,61 +1,85 @@
 name: ci workflow
 
 on:
-  push:
-    branches: ['*']
-  pull_request:
-    branches: ['master']
+    push:
+        branches: ["*"]
+    pull_request:
+        branches: ["master"]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+    lint:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
 
-    steps:
-      - name: Git checkout
-        uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "22"
+                  cache: "npm"
 
-      - name: Use example env for CI (no repo secrets)
-        run: cp .env.example .env
+            - run: npm ci
 
-      - name: setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
+            - name: Lint backend
+              run: npm run lint --workspace=backend
 
-      - name: install dependencies
-        run: npm ci --verbose
+            - name: Lint frontend
+              run: npm run lint --workspace=frontend
 
-      - name: generate prisma client
-        run: npx prisma generate
+    build:
+        runs-on: ubuntu-latest
+        needs: lint
+        steps:
+            - uses: actions/checkout@v4
 
-      - name: build project
-        run: npm run build
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "22"
+                  cache: "npm"
 
-  docker-test:
-    runs-on: ubuntu-latest
-    needs: build
+            - run: npm ci
 
-    steps:
-      - name: Git checkout
-        uses: actions/checkout@v4
+            - name: Generate Prisma client
+              working-directory: backend
+              run: npx prisma generate
 
-      - name: Use example env for CI (no repo secrets)
-        run: cp .env.example .env
+            - name: Build all workspaces
+              run: npm run build
 
-      - name: Run Docker Compose (wait for healthchecks)
-        run: docker compose up -d --build --wait
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: frontend-dist
+                  path: frontend/dist
 
-      - name: Wait for containers
-        run: sleep 3
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: backend-dist
+                  path: backend/dist
 
-      - name: Check running containers
-        run: docker compose ps -a
+    docker-test:
+        runs-on: ubuntu-latest
+        needs: build
+        steps:
+            - uses: actions/checkout@v4
 
-      - name: Check logs if failed
-        if: failure()
-        run: docker compose logs
+            - name: Setup env for Docker
+              run: cp backend/.env.example backend/.env
 
-      - name: Shutdown
-        if: always()
-        run: docker compose down
+            - name: Run Docker Compose (wait for healthchecks)
+              run: docker compose up -d --build --wait
+
+            - name: Wait for containers
+              run: sleep 3
+
+            - name: Check running containers
+              run: docker compose ps -a
+
+            - name: Verify API health endpoint
+              run: curl -sf http://localhost:3000/api/health || (docker compose logs --tail=30 nest-server && exit 1)
+
+            - name: Check logs if failed
+              if: failure()
+              run: docker compose logs
+
+            - name: Shutdown
+              if: always()
+              run: docker compose down
