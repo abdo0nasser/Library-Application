@@ -2,7 +2,7 @@ services:
   nest-server:
     container_name: nest-server
     build:
-      context: .
+      context: ./backend
     restart: unless-stopped
     ports:
       - ${BACKEND_PORT}:${BACKEND_PORT}
